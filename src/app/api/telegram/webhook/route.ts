@@ -22,13 +22,12 @@ async function sendTelegram(method: string, payload: any) {
   }
 }
 
-// 🤖 CORE AI INTELLIGENCE INTERCEPTOR ENGINE (Strict Structural v1 Core Content Mapping)
+// 🤖 CORE AI INTELLIGENCE INTERCEPTOR ENGINE (Strict Structural v1beta Contents Layout)
 async function askGeminiToParse(userPrompt: string, existingProductsSummary: string) {
   if (!GEMINI_API_KEY || GEMINI_API_KEY.trim() === "") {
     return { action: "UNKNOWN", reply: "❌ SYSTEM DIAGNOSTICS: process.env.GEMINI_API_KEY khali hai! Vercel me Environment Variable check karein." };
   }
 
-  // Merging structural roles instructions context mapping to prevent structural payload 400 errors
   const structuralSystemPrompt = `You are Afruz Core Web Server Control AI. Analyze the user's natural language request regarding a Next.js course store database management system.
 Current Live Database Rows summary: ${existingProductsSummary}
 
@@ -48,10 +47,10 @@ If the user text is just greeting or vague, output:
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000); // 12 seconds boundary limit
+    const timeoutId = setTimeout(() => controller.abort(), 12000); // 12 seconds limit
 
-    // 🌐 FIXED ROUTE STRUCT: Merging prompt context values directly into structured model contents array layer
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    // 🌐 ABSOLUTE FIX: v1beta endpoint structure combined with unified array layout payload
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -70,7 +69,6 @@ If the user text is just greeting or vague, output:
     clearTimeout(timeoutId);
     const data = await response.json();
     
-    // Catch specific Google API runtime flags
     if (data.error) {
       return { action: "UNKNOWN", reply: `❌ GOOGLE API ERROR: ${data.error.message}. Code: ${data.error.code}` };
     }
@@ -81,7 +79,7 @@ If the user text is just greeting or vague, output:
 
     let jsonText = data.candidates[0].content.parts[0].text.trim();
     
-    // Removing string wrappers markdown block constraints patterns safely
+    // Clean string markdown formats safely
     if (jsonText.startsWith("```json")) jsonText = jsonText.replace("```json", "");
     if (jsonText.startsWith("```")) jsonText = jsonText.replace("```", "");
     if (jsonText.endsWith("```")) jsonText = jsonText.slice(0, -3);
@@ -131,13 +129,12 @@ export async function POST(req: Request) {
         return Response.json({ success: true });
       }
 
-      // Fetch all currently active products mapping context matrix summary for Gemini context reference
+      // Fetch active items data context matching
       const allProducts = await db.select().from(products).orderBy(desc(products.id));
       const dbSummary = allProducts.map(p => `[ID: ${p.id}, Title: ${p.title}, Price: ${p.price}, Instructor: ${p.instructor}]`).join("; ");
 
       await sendTelegram("sendChatAction", { chat_id: chatId, action: "typing" });
       
-      // Pass execution bounds query control to Gemini AI layer
       const aiDecision = await askGeminiToParse(text, dbSummary);
 
       if (aiDecision.action === "ADD") {

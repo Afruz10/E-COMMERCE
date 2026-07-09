@@ -1,27 +1,35 @@
 import { db } from "@/db";
 import { products } from "@/db/schema";
-import { eq, desc, like } from "drizzle-orm";
-import { GoogleGenAI } from "@google/generative-ai"; // Install via npm if needed, or use fetch pipeline below
+import { eq, desc } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
+// 🔐 TOKENS & ENVIRONMENT VARIABLES (SECURE SYSTEM LOCKER)
 const BOT_TOKEN = "8911554064:AAH4QUzD2aWDn3dHBjeaf3pLCAJnND-Csnw";
-const ADMIN_CHAT_ID = "5593004632";
-// Yahan apni direct Google Studio key string variables me inject karo
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AIzaSyBLsm0M_vQsLVp4vketFBX_TPn6hl9ddew"; 
+const ADMIN_CHAT_ID = "5593004632"; // Strict Owner Auth
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
 
+// Helper: Telegram API transaction request router
 async function sendTelegram(method: string, payload: any) {
-  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  try {
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    console.error("Telegram API communication failure:", err);
+  }
 }
 
 // 🤖 CORE AI INTELLIGENCE INTERCEPTOR ENGINE (Gemini API Native Fetch Loop)
 async function askGeminiToParse(userPrompt: string, existingProductsSummary: string) {
+  if (!GEMINI_API_KEY) {
+    return { action: "UNKNOWN", reply: "❌ Vercel Configuration Error: GEMINI_API_KEY Missing in Environment Locker." };
+  }
+
   const systemInstruction = `
-    You are Afruz Core Web Server Control AI. Analyze the user's natural language request regarding a Next.js course store database database management system.
+    You are Afruz Core Web Server Control AI. Analyze the user's natural language request regarding a Next.js course store database management system.
     Current Live Database Rows summary: ${existingProductsSummary}
     
     You must output ONLY a valid JSON object matching one of these strict architectural action formats, nothing else, no markdown formatting blocks:
@@ -55,7 +63,7 @@ async function askGeminiToParse(userPrompt: string, existingProductsSummary: str
     return JSON.parse(jsonText);
   } catch (err) {
     console.error("Gemini runtime parsing error:", err);
-    return { action: "UNKNOWN", reply: "Gemini server parsing error pipeline timeout." };
+    return { action: "UNKNOWN", reply: "❌ Gemini server parsing error pipeline timeout." };
   }
 }
 
@@ -63,7 +71,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // Inline Buttons clicks dashboard navigation
+    // 1. HANDLE INLINE BUTTON CLICKS (CALLBACK QUERIES)
     if (body.callback_query) {
       const callback = body.callback_query;
       const messageId = callback.message.message_id;
@@ -74,14 +82,14 @@ export async function POST(req: Request) {
         await sendTelegram("editMessageText", {
           chat_id: ADMIN_CHAT_ID,
           message_id: messageId,
-          text: "🤖 *AFRUZ CORE OPERATIONAL SYSTEM BOT v4.0 (AI ACTIVE)*\n\nAb aap kisi bhi simple language ya simple commands me message bhej sakte hain, Gemini AI automatic database sync handle karega!",
+          text: "🤖 *AFRUZ CORE OPERATIONAL SYSTEM BOT v4.0 (AI SCRIPT SAFE)*\n\nAb aap kisi bhi simple language ya instructions me message bhej sakte hain, Gemini AI automatic secure parse karke database live update karega!",
           parse_mode: "Markdown"
         });
       }
       return Response.json({ success: true });
     }
 
-    // 🧠 REAL-TIME NATURAL LANGUAGE INTERACTION HANDLING
+    // 2. 🧠 REAL-TIME NATURAL LANGUAGE INTERACTION HANDLING
     if (body.message) {
       const msg = body.message;
       const chatId = String(msg.chat.id);
@@ -92,7 +100,7 @@ export async function POST(req: Request) {
       if (text === "/start" || text === "/list") {
         await sendTelegram("sendMessage", {
           chat_id: chatId,
-          text: "🤖 *SYSTEM ACTIVE:* Afruz bhai, koi bhi instructions normal hinglish ya english me likhein (e.g., *'ek naya course add karo...'* ya *'course id 5 delete kar do'*)."
+          text: "🤖 *SYSTEM ACTIVE:* Afruz bhai, koi bhi instructions normal hinglish ya english me likhein (e.g., *'ek naya course add karo...'* ya *'course id 5 delete kar do'*). Base layout pipeline fully safe hai."
         });
         return Response.json({ success: true });
       }

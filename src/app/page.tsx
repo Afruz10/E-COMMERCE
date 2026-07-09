@@ -2,6 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { ProductCard } from "@/components/product-card";
 import { Stars } from "@/components/stars";
+// 📸 THE NEW FLOATING INSTAGRAM ICON IMPORT
+import InstagramIcon from "@/components/InstagramIcon";
 import {
   getCategories,
   getFeaturedProducts,
@@ -369,6 +371,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* 🔥 THE INSTAGRAM FLOATING OVERLAY ELEMENT CONTAINER */}
+      <InstagramIcon />
     </div>
   );
 }

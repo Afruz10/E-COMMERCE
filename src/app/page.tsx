@@ -2,7 +2,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { ProductCard } from "@/components/product-card";
 import { Stars } from "@/components/stars";
-// 📸 THE NEW FLOATING INSTAGRAM ICON IMPORT
 import InstagramIcon from "@/components/InstagramIcon";
 import {
   getCategories,
@@ -81,7 +80,7 @@ export default async function HomePage() {
     all.reduce((s, p) => s + p.rating, 0) / Math.max(1, all.length);
 
   return (
-    <div>
+    <div className="bg-ink min-h-screen text-cream">
       {/* HERO */}
       <section className="relative overflow-hidden bg-ink text-cream">
         <Image
@@ -89,9 +88,9 @@ export default async function HomePage() {
           alt=""
           fill
           priority
-          className="object-cover opacity-50"
+          className="object-cover opacity-[0.35]"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-ink/70 via-ink/60 to-ink" />
+        <div className="absolute inset-0 bg-gradient-to-b from-ink/40 via-ink/80 to-ink" />
         <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 sm:py-32 lg:py-40">
           <div className="max-w-3xl animate-fade-up">
             <span className="inline-flex items-center gap-2 rounded-full border border-cream/20 bg-cream/5 px-4 py-1.5 text-xs font-medium tracking-wide backdrop-blur">
@@ -139,13 +138,13 @@ export default async function HomePage() {
       </section>
 
       {/* MARQUEE */}
-      <div className="border-y border-ink/10 bg-cream py-3.5">
+      <div className="border-y border-cream/10 bg-cream/5 py-3.5 backdrop-blur">
         <div className="relative flex overflow-hidden">
           <div className="animate-marquee flex shrink-0 items-center gap-10 pr-10">
             {[...marquee, ...marquee].map((m, i) => (
               <span
                 key={i}
-                className="flex items-center gap-3 whitespace-nowrap text-sm font-medium text-ink/55"
+                className="flex items-center gap-3 whitespace-nowrap text-sm font-medium text-cream/70"
               >
                 <span className="text-violet">✦</span>
                 {m}
@@ -162,18 +161,19 @@ export default async function HomePage() {
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-violet">
               Featured collections
             </p>
-            <h2 className="mt-2 font-display text-4xl font-semibold tracking-tight">
+            <h2 className="mt-2 font-display text-4xl font-semibold tracking-tight text-cream">
               Find your path
             </h2>
           </div>
           <Link
             href="/products"
-            className="text-sm font-semibold text-ink/70 underline-offset-4 hover:text-ink hover:underline"
+            className="text-sm font-semibold text-cream/70 underline-offset-4 hover:text-cream hover:underline"
           >
             View all courses →
           </Link>
         </div>
 
+        {/* 🎨 DYNAMIC GRADIENT MIX FIXED HERE */}
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {categories.map((c) => {
             const count = all.filter((p) => p.categorySlug === c.slug).length;
@@ -181,27 +181,27 @@ export default async function HomePage() {
               <Link
                 key={c.slug}
                 href={`/products?category=${c.slug}`}
-                className="card-hover group relative flex flex-col justify-between overflow-hidden rounded-3xl p-6 text-white"
+                className="card-hover group relative flex flex-col justify-between overflow-hidden rounded-3xl p-6 text-white border border-cream/10 shadow-lg hover:border-cream/20 transition-all duration-300"
                 style={{
-                  background: `linear-gradient(150deg, ${c.accent}, ${c.accent}cc)`,
+                  background: `linear-gradient(135deg, ${c.accent || '#1e1b4b'} 0%, #09090b 100%)`,
                   minHeight: 220,
                 }}
               >
-                <div className="grain absolute inset-0 opacity-25" />
+                <div className="grain absolute inset-0 opacity-10" />
                 <div className="relative flex items-start justify-between">
-                  <span className="font-display text-5xl leading-none opacity-90">
+                  <span className="font-display text-5xl leading-none opacity-90 text-cream">
                     {c.glyph}
                   </span>
-                  <span className="rounded-full bg-white/20 px-2.5 py-1 text-[0.65rem] font-semibold backdrop-blur">
+                  <span className="rounded-full bg-white/10 border border-white/10 px-2.5 py-1 text-[0.65rem] font-semibold backdrop-blur text-cream">
                     {count} courses
                   </span>
                 </div>
                 <div className="relative">
-                  <h3 className="font-display text-2xl font-semibold">
+                  <h3 className="font-display text-2xl font-semibold text-white group-hover:text-cyan-400 transition-colors">
                     {c.name}
                   </h3>
-                  <p className="mt-1 text-sm text-white/80">{c.tagline}</p>
-                  <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold opacity-0 transition-opacity group-hover:opacity-100">
+                  <p className="mt-1 text-sm text-cream/80">{c.tagline}</p>
+                  <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-cyan-400 opacity-0 transition-opacity group-hover:opacity-100">
                     Explore →
                   </span>
                 </div>
@@ -212,20 +212,20 @@ export default async function HomePage() {
       </section>
 
       {/* FEATURED PRODUCTS */}
-      <section className="bg-cream/60 py-20">
+      <section className="bg-cream/5 py-20 border-y border-cream/5">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-violet">
                 Trending now
               </p>
-              <h2 className="mt-2 font-display text-4xl font-semibold tracking-tight">
+              <h2 className="mt-2 font-display text-4xl font-semibold tracking-tight text-cream">
                 Student favorites
               </h2>
             </div>
             <Link
               href="/products"
-              className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-cream transition-transform hover:scale-[1.03]"
+              className="rounded-full bg-cream px-5 py-2.5 text-sm font-semibold text-ink transition-transform hover:scale-[1.03]"
             >
               Shop all
             </Link>
@@ -244,10 +244,10 @@ export default async function HomePage() {
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-violet">
             Why AfruzStore
           </p>
-          <h2 className="mt-2 font-display text-4xl font-semibold tracking-tight">
+          <h2 className="mt-2 font-display text-4xl font-semibold tracking-tight text-cream">
             Smarter AI, without the waste
           </h2>
-          <p className="mt-4 text-ink/60">
+          <p className="mt-4 text-cream/60">
             Everything we teach is practical, ethical, and obsessed with value —
             for your wallet and for the world.
           </p>
@@ -256,15 +256,15 @@ export default async function HomePage() {
           {valueProps.map((v) => (
             <div
               key={v.title}
-              className="rounded-3xl border border-ink/8 bg-white p-6 shadow-soft transition-shadow hover:shadow-lift"
+              className="rounded-3xl border border-cream/10 bg-zinc-950/50 backdrop-blur p-6 shadow-xl transition-all hover:border-cream/20"
             >
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet/10 font-display text-2xl text-violet">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet/20 font-display text-2xl text-violet">
                 {v.glyph}
               </span>
-              <h3 className="mt-4 font-display text-lg font-semibold">
+              <h3 className="mt-4 font-display text-lg font-semibold text-white">
                 {v.title}
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-ink/60">
+              <p className="mt-2 text-sm leading-relaxed text-cream/60">
                 {v.body}
               </p>
             </div>
@@ -273,21 +273,23 @@ export default async function HomePage() {
       </section>
 
       {/* MISSION */}
-      <section id="mission" className="bg-ink py-24 text-cream">
+      <section id="mission" className="bg-zinc-950 py-24 border-t border-cream/5 text-cream">
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2">
-          <div className="relative aspect-[4/3] overflow-hidden rounded-3xl">
+          <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-cream/10">
+            {/* Fallback pattern background if image breaks */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-violet/20 to-ink" />
             <Image
               src="/images/mission.jpg"
               alt="People building AI for good together"
               fill
-              className="object-cover"
+              className="object-cover opacity-80"
             />
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gold">
               Our mission
             </p>
-            <h2 className="mt-2 font-display text-4xl font-semibold tracking-tight">
+            <h2 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white">
               AI should be affordable, ethical, and within reach.
             </h2>
             <p className="mt-5 leading-relaxed text-cream/70">
@@ -321,7 +323,7 @@ export default async function HomePage() {
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-violet">
             Loved by builders
           </p>
-          <h2 className="mt-2 font-display text-4xl font-semibold tracking-tight">
+          <h2 className="mt-2 font-display text-4xl font-semibold tracking-tight text-cream">
             12,000+ students, real results
           </h2>
         </div>
@@ -329,19 +331,19 @@ export default async function HomePage() {
           {testimonials.map((t) => (
             <figure
               key={t.author}
-              className="flex flex-col rounded-3xl border border-ink/8 bg-white p-7 shadow-soft"
+              className="flex flex-col rounded-3xl border border-cream/10 bg-zinc-950/40 backdrop-blur p-7 shadow-lg"
             >
               <Stars rating={t.rating} size={16} />
-              <blockquote className="mt-4 flex-1 text-[0.95rem] leading-relaxed text-ink/75">
+              <blockquote className="mt-4 flex-1 text-[0.95rem] leading-relaxed text-cream/80">
                 “{t.quote}”
               </blockquote>
-              <figcaption className="mt-5 flex items-center gap-3 border-t border-ink/8 pt-4">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-ink font-display text-sm font-semibold text-cream">
+              <figcaption className="mt-5 flex items-center gap-3 border-t border-cream/10 pt-4">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-cream font-display text-sm font-semibold text-ink">
                   {t.author[0]}
                 </span>
                 <div>
-                  <p className="text-sm font-semibold">{t.author}</p>
-                  <p className="text-xs text-ink/50">{t.role}</p>
+                  <p className="text-sm font-semibold text-white">{t.author}</p>
+                  <p className="text-xs text-cream/50">{t.role}</p>
                 </div>
               </figcaption>
             </figure>
@@ -351,13 +353,13 @@ export default async function HomePage() {
 
       {/* CTA */}
       <section className="mx-auto max-w-7xl px-4 pb-8 sm:px-6">
-        <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-violet via-violet-deep to-ink px-6 py-16 text-center text-white sm:px-12 sm:py-20">
-          <div className="grain absolute inset-0 opacity-20" />
+        <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-violet via-violet/80 to-zinc-950 px-6 py-16 text-center text-white sm:px-12 sm:py-20 border border-cream/10">
+          <div className="grain absolute inset-0 opacity-10" />
           <div className="relative mx-auto max-w-2xl">
-            <h2 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">
+            <h2 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl text-white">
               Ready to build more for less?
             </h2>
-            <p className="mt-4 text-white/80">
+            <p className="mt-4 text-cream/80">
               Join thousands of students using Claude smarter. Use code{" "}
               <span className="font-semibold text-gold">AICLAUDE</span> for 15%
               off your first course.
@@ -372,7 +374,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 🔥 THE INSTAGRAM FLOATING OVERLAY ELEMENT CONTAINER */}
       <InstagramIcon />
     </div>
   );
@@ -381,8 +382,8 @@ export default async function HomePage() {
 function Stat({ value, label }: { value: string; label: string }) {
   return (
     <div>
-      <p className="font-display text-3xl font-bold">{value}</p>
-      <p className="text-xs uppercase tracking-wider text-cream/55">{label}</p>
+      <p className="font-display text-3xl font-bold text-white">{value}</p>
+      <p className="text-xs uppercase tracking-wider text-cream/60">{label}</p>
     </div>
   );
 }

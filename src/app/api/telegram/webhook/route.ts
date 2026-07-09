@@ -1,22 +1,61 @@
 import { db } from "@/db";
 import { products } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, like } from "drizzle-orm";
+import { GoogleGenAI } from "@google/generative-ai"; // Install via npm if needed, or use fetch pipeline below
 
 export const dynamic = "force-dynamic";
 
 const BOT_TOKEN = "8911554064:AAH4QUzD2aWDn3dHBjeaf3pLCAJnND-Csnw";
-const ADMIN_CHAT_ID = "5593004632"; // Strict Owner Auth
+const ADMIN_CHAT_ID = "5593004632";
+// Yahan apni direct Google Studio key string variables me inject karo
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "YOUR_GEMINI_API_KEY_HERE"; 
 
-// Helper: Telegram message push controller
 async function sendTelegram(method: string, payload: any) {
+  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+// 🤖 CORE AI INTELLIGENCE INTERCEPTOR ENGINE (Gemini API Native Fetch Loop)
+async function askGeminiToParse(userPrompt: string, existingProductsSummary: string) {
+  const systemInstruction = `
+    You are Afruz Core Web Server Control AI. Analyze the user's natural language request regarding a Next.js course store database database management system.
+    Current Live Database Rows summary: ${existingProductsSummary}
+    
+    You must output ONLY a valid JSON object matching one of these strict architectural action formats, nothing else, no markdown formatting blocks:
+    
+    For Creating/Adding:
+    { "action": "ADD", "title": "...", "subtitle": "...", "price": "...", "instructor": "...", "imageUrl": "..." }
+    
+    For Modifying/Updating (Identify matching ID from rows summary):
+    { "action": "UPDATE", "id": 12, "title": "...", "subtitle": "...", "price": "...", "instructor": "...", "imageUrl": "..." }
+    
+    For Erasing/Deleting (Identify matching ID from rows summary):
+    { "action": "DELETE", "id": 12 }
+    
+    If the user text is just greeting or vague, output:
+    { "action": "UNKNOWN", "reply": "Mujhe database modification commands clear nahi mile, Afruz bhai." }
+  `;
+
   try {
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: userPrompt }] }],
+        systemInstruction: { parts: [{ text: systemInstruction }] },
+        generationConfig: { responseMimeType: "application/json" }
+      })
     });
+    
+    const data = await response.json();
+    const jsonText = data.candidates[0].content.parts[0].text;
+    return JSON.parse(jsonText);
   } catch (err) {
-    console.error("Telegram API communication failure:", err);
+    console.error("Gemini runtime parsing error:", err);
+    return { action: "UNKNOWN", reply: "Gemini server parsing error pipeline timeout." };
   }
 }
 
@@ -24,115 +63,25 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // 1. HANDLE INLINE BUTTON CLICKS (CALLBACK QUERIES)
+    // Inline Buttons clicks dashboard navigation
     if (body.callback_query) {
       const callback = body.callback_query;
-      const fromId = String(callback.from.id);
-      const data = callback.data;
       const messageId = callback.message.message_id;
-
-      if (fromId !== ADMIN_CHAT_ID) return Response.json({ success: false });
-
-      // Telegram loading clock icon ko stop karne ke liye acknowledgement
+      if (String(callback.from.id) !== ADMIN_CHAT_ID) return Response.json({ success: true });
       await sendTelegram("answerCallbackQuery", { callback_query_id: callback.id });
 
-      // MAIN HUB NAVIGATION
-      if (data === "menu_main") {
-        const menuKeyboard = {
-          inline_keyboard: [
-            [{ text: "➕ Add Dynamic Product", callback_data: "menu_add" }],
-            [{ text: "🔄 View & Edit Registry Chart", callback_data: "menu_chart" }],
-            [{ text: "🗑️ Delete Asset Node", callback_data: "menu_delete_list" }]
-          ]
-        };
+      if (callback.data === "menu_main") {
         await sendTelegram("editMessageText", {
           chat_id: ADMIN_CHAT_ID,
           message_id: messageId,
-          text: "🤖 *AFRUZ CORE OPERATIONAL SYSTEM BOT v3.0*\n\nSelect corresponding action system execution protocol:",
-          parse_mode: "Markdown",
-          reply_markup: menuKeyboard
+          text: "🤖 *AFRUZ CORE OPERATIONAL SYSTEM BOT v4.0 (AI ACTIVE)*\n\nAb aap kisi bhi simple language ya simple commands me message bhej sakte hain, Gemini AI automatic database sync handle karega!",
+          parse_mode: "Markdown"
         });
       }
-      // ADD COURSE GUIDE INSTRUCTIONS
-      else if (data === "menu_add") {
-        const backKeyboard = { inline_keyboard: [[{ text: "🔙 Main Menu", callback_data: "menu_main" }]] };
-        await sendTelegram("editMessageText", {
-          chat_id: ADMIN_CHAT_ID,
-          message_id: messageId,
-          text: "📝 *Database Direct Insertion Engine*\n\nNaya course add karne ke liye niche diye gaye format me ek single text message reply bhejein:\n\n`add: Title | Subtitle | Price | InstructorNode | ImageURL`",
-          parse_mode: "Markdown",
-          reply_markup: backKeyboard
-        });
-      }
-      // RENDER EDIT CHART GRID
-      else if (data === "menu_chart") {
-        const allProducts = await db.select().from(products).orderBy(desc(products.id));
-        const inlineKeyboard = allProducts.map((p) => [
-          { text: `✏️ ${p.title} (₹${p.price})`, callback_data: `edit_select_${p.id}` }
-        ]);
-        inlineKeyboard.push([{ text: "🔙 Main Menu", callback_data: "menu_main" }]);
-
-        await sendTelegram("editMessageText", {
-          chat_id: ADMIN_CHAT_ID,
-          message_id: messageId,
-          text: "🔄 *Active Registry Schema Monitor*\n\nJis course ke values modify karne hain, uspar tap karein:",
-          parse_mode: "Markdown",
-          reply_markup: { inline_keyboard: inlineKeyboard }
-        });
-      }
-      // RENDER DELETE CHART GRID
-      else if (data === "menu_delete_list") {
-        const allProducts = await db.select().from(products).orderBy(desc(products.id));
-        const inlineKeyboard = allProducts.map((p) => [
-          { text: `🗑️ Wipe: ${p.title}`, callback_data: `confirm_wipe_${p.id}` }
-        ]);
-        inlineKeyboard.push([{ text: "🔙 Main Menu", callback_data: "menu_main" }]);
-
-        await sendTelegram("editMessageText", {
-          chat_id: ADMIN_CHAT_ID,
-          message_id: messageId,
-          text: "🗑️ *Asset Registry Eraser Grid*\n\n⚠️ *Warning:* Kisi bhi product par tap karte hi database record instantly wipe out ho jayega:",
-          parse_mode: "Markdown",
-          reply_markup: { inline_keyboard: inlineKeyboard }
-        });
-      }
-      // TARGET EDIT OPERATIONS SELECTOR
-      else if (data.startsWith("edit_select_")) {
-        const pId = parseInt(data.split("_")[2]);
-        const [product] = await db.select().from(products).where(eq(products.id, pId));
-        const backKeyboard = { inline_keyboard: [[{ text: "🔙 Back to Chart", callback_data: "menu_chart" }]] };
-
-        if (!product) {
-          await sendTelegram("sendMessage", { chat_id: ADMIN_CHAT_ID, text: "❌ Record not found." });
-        } else {
-          await sendTelegram("editMessageText", {
-            chat_id: ADMIN_CHAT_ID,
-            message_id: messageId,
-            text: `📊 *Product Editing Sandbox*\n\n*Target ID:* \`${product.id}\`\n*Current Title:* ${product.title}\n\nIs course ke properties overwrite karne ke liye ye format text copy karke values update karke reply bhejein:\n\n\`update: ${product.id} | Title | Subtitle | Price | Instructor | ImageURL\``,
-            parse_mode: "Markdown",
-            reply_markup: backKeyboard
-          });
-        }
-      }
-      // EXECUTE WIPE ACTION DIRECTLY
-      else if (data.startsWith("confirm_wipe_")) {
-        const pId = parseInt(data.split("_")[2]);
-        await db.delete(products).where(eq(products.id, pId));
-        
-        const backKeyboard = { inline_keyboard: [[{ text: "🔙 Main Menu", callback_data: "menu_main" }]] };
-        await sendTelegram("editMessageText", {
-          chat_id: ADMIN_CHAT_ID,
-          message_id: messageId,
-          text: "✅ Transaction Complete: Selected asset successfully removed from core database schema matrix.",
-          parse_mode: "Markdown",
-          reply_markup: backKeyboard
-        });
-      }
-
       return Response.json({ success: true });
     }
 
-    // 2. HANDLE REAL-TIME INCOMING TEXT COMMANDS & REPLIES
+    // 🧠 REAL-TIME NATURAL LANGUAGE INTERACTION HANDLING
     if (body.message) {
       const msg = body.message;
       const chatId = String(msg.chat.id);
@@ -140,76 +89,70 @@ export async function POST(req: Request) {
 
       if (chatId !== ADMIN_CHAT_ID) return Response.json({ success: true });
 
-      // INITIAL MASTER ROOT CALL
-      if (text === "/start" || text === "/list" || text === "menu") {
-        const menuKeyboard = {
-          inline_keyboard: [
-            [{ text: "➕ Add Dynamic Product", callback_data: "menu_add" }],
-            [{ text: "🔄 View & Edit Registry Chart", callback_data: "menu_chart" }],
-            [{ text: "🗑️ Delete Asset Node", callback_data: "menu_delete_list" }]
-          ]
-        };
+      if (text === "/start" || text === "/list") {
         await sendTelegram("sendMessage", {
           chat_id: chatId,
-          text: "🤖 *AFRUZ CORE OPERATIONAL SYSTEM BOT v3.0*\n\nSelect corresponding action system execution protocol:",
-          parse_mode: "Markdown",
-          reply_markup: menuKeyboard
+          text: "🤖 *SYSTEM ACTIVE:* Afruz bhai, koi bhi instructions normal hinglish ya english me likhein (e.g., *'ek naya course add karo...'* ya *'course id 5 delete kar do'*)."
         });
+        return Response.json({ success: true });
       }
-      // PROCESS DIRECT TEXT COURSE INSERTION (Full Access)
-      else if (text.startsWith("add:")) {
-        const rawData = text.replace("add:", "").trim();
-        const [title, subtitle, price, instructor, imageUrl] = rawData.split("|").map(s => s.trim());
 
-        if (!title || !price || !instructor) {
-          await sendTelegram("sendMessage", { chat_id: chatId, text: "❌ Parsing Error: Minimum metadata properties (Title, Price, Instructor) required." });
-          return Response.json({ success: true });
-        }
+      // Fetch all currently active products mapping context matrix summary for Gemini context reference
+      const allProducts = await db.select().from(products).orderBy(desc(products.id));
+      const dbSummary = allProducts.map(p => `[ID: ${p.id}, Title: ${p.title}, Price: ${p.price}, Instructor: ${p.instructor}]`).join("; ");
 
-        const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString().slice(-4);
-        
+      await sendTelegram("sendChatAction", { chat_id: chatId, action: "typing" });
+      
+      // Pass execution bounds query control to Gemini AI layer
+      const aiDecision = await askGeminiToParse(text, dbSummary);
+
+      if (aiDecision.action === "ADD") {
+        const slug = aiDecision.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString().slice(-4);
         const insertData: any = {
-          slug, title,
-          subtitle: subtitle || "Premium Digital Course Assets",
-          description: "Production configuration deployed via Telegram integration terminal hub.",
-          categorySlug: "courses", level: "Pro",
-          price: String(price), compareAtPrice: String(Number(price) * 2),
-          durationHours: "12", lessons: 30, rating: "5.0", reviewCount: 5,
-          instructor, instructorTitle: "System Engineer",
-          accent: imageUrl || "#cyan", glyph: "terminal",
-          highlights: JSON.stringify(["Full Automated Access"]),
-          curriculum: JSON.stringify([{ title: "Module 1", lessons: ["Overview Terminal"] }]),
-          outcomes: JSON.stringify(["Scale Infrastructure"]), featured: true
+          slug, title: aiDecision.title,
+          subtitle: aiDecision.subtitle || "AI Managed Assets Module",
+          description: "Database transaction pipe executed safely via Gemini Webhook Automation system context layer.",
+          categorySlug: "courses", level: "Expert",
+          price: String(aiDecision.price || "99"), compareAtPrice: String(Number(aiDecision.price || 99) * 2),
+          durationHours: "15", lessons: 40, rating: "5.0", reviewCount: 10,
+          instructor: aiDecision.instructor || "Afruz Node", instructorTitle: "AI Consultant",
+          accent: aiDecision.imageUrl || "#cyan", glyph: "brain",
+          highlights: JSON.stringify(["100% Automated"]),
+          curriculum: JSON.stringify([{ title: "Module 1", lessons: ["Overview Core"] }]),
+          outcomes: JSON.stringify(["Scale Processing Operations"]), featured: true
         };
 
         await (db.insert(products).values([insertData]) as any);
-        
-        const backKeyboard = { inline_keyboard: [[{ text: "🔙 Main Menu", callback_data: "menu_main" }]] };
-        await sendTelegram("sendMessage", { chat_id: chatId, text: `🎉 *Core Registry Sync Success!*\n\n*Course:* ${title}\n*Price:* ₹${price}\nAsset live on blockchain network node structure.`, parse_mode: "Markdown", reply_markup: backKeyboard });
-      }
-      // PROCESS DIRECT TEXT COURSE UPDATE (Full Access)
-      else if (text.startsWith("update:")) {
-        const rawData = text.replace("update:", "").trim();
-        const [idStr, title, subtitle, price, instructor, imageUrl] = rawData.split("|").map(s => s.trim());
-        const pId = parseInt(idStr);
-
-        if (!pId || !title || !price || !instructor) {
-          await sendTelegram("sendMessage", { chat_id: chatId, text: "❌ Overwrite Block Interrupted: Parsing attributes failed." });
-          return Response.json({ success: true });
-        }
-
+        await sendTelegram("sendMessage", { chat_id: chatId, text: `🎉 *AI Sync Complete: New Product Deployed!*\n\n*Title:* ${aiDecision.title}\n*Price:* ₹${aiDecision.price}\n*Instructor:* ${aiDecision.instructor}` });
+      } 
+      
+      else if (aiDecision.action === "UPDATE") {
         await db.update(products)
-          .set({ title, subtitle, price: String(price), instructor, accent: imageUrl || "#cyan" })
-          .where(eq(products.id, pId));
+          .set({
+            title: aiDecision.title,
+            subtitle: aiDecision.subtitle,
+            price: String(aiDecision.price),
+            instructor: aiDecision.instructor,
+            accent: aiDecision.imageUrl
+          })
+          .where(eq(products.id, aiDecision.id));
 
-        const backKeyboard = { inline_keyboard: [[{ text: "🔙 Main Menu", callback_data: "menu_main" }]] };
-        await sendTelegram("sendMessage", { chat_id: chatId, text: `✅ *Asset Properties Modified!*\n\nTarget Schema row ID \`${pId}\` completely overwritten matching runtime state variables.`, parse_mode: "Markdown", reply_markup: backKeyboard });
+        await sendTelegram("sendMessage", { chat_id: chatId, text: `✅ *AI Sync Complete: Target Registry ID ${aiDecision.id} Modified!*` });
+      } 
+      
+      else if (aiDecision.action === "DELETE") {
+        await db.delete(products).where(eq(products.id, aiDecision.id));
+        await sendTelegram("sendMessage", { chat_id: chatId, text: `🗑️ *AI Sync Complete: Target Row Entity ID ${aiDecision.id} wiped out from schema database registry matrix!*` });
+      } 
+      
+      else {
+        await sendTelegram("sendMessage", { chat_id: chatId, text: aiDecision.reply || "Instructions clear nahi ho payi pipeline matrix parser parameters block me." });
       }
     }
 
     return Response.json({ success: true });
   } catch (error: any) {
-    console.error("Critical webhook loop exception:", error);
+    console.error("Critical AI webhook breakdown loop:", error);
     return Response.json({ success: false, error: error.message }, { status: 500 });
   }
 }

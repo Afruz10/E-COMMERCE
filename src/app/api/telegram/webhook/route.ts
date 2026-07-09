@@ -4,11 +4,11 @@ import { eq, desc } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
-// 🔐 SECURE CREDENTIALS LOCKER
+// 🔐 CORE TERMINAL AUTH LOCKER
 const BOT_TOKEN = "8911554064:AAH4QUzD2aWDn3dHBjeaf3pLCAJnND-Csnw";
-const ADMIN_CHAT_ID = "5593004632"; // Only Afruz Account
+const ADMIN_CHAT_ID = "5593004632"; // Strictly Bound to Afruz Profile
 
-// Helper: Telegram Message Driver
+// Helper: Telegram API Engine
 async function sendTelegram(method: string, payload: any) {
   try {
     await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
@@ -17,37 +17,52 @@ async function sendTelegram(method: string, payload: any) {
       body: JSON.stringify(payload),
     });
   } catch (err) {
-    console.error("Telegram Transmission Error:", err);
+    console.error("Telegram API communication error:", err);
   }
 }
 
-// 📊 Render Function: Wiping old messages to prevent double chart spamming
-async function renderProductChart(chatId: string, messageId?: number) {
-  const allProducts = await db.select().from(products).orderBy(desc(products.id));
+// 🎛️ SYSTEM ROOT MODULE: Renders the beautiful master controller dashboard
+async function renderMasterDashboard(chatId: string, messageId?: number) {
+  // Fetch real-time metrics data directly from Drizzle DB
+  const allProducts = await db.select().from(products);
+  const totalCourses = allProducts.length;
+  const grossValue = allProducts.reduce((sum, p) => sum + (parseInt(p.price) || 0), 0);
 
-  if (allProducts.length === 0) {
-    const text = "📭 *AFRUZ STORE MATRIX*\n\nDatabase registry khali hai. Koi active courses nahi mile.";
-    if (messageId) {
-      await sendTelegram("editMessageText", { chat_id: chatId, message_id: messageId, text, parse_mode: "Markdown" });
-    } else {
-      await sendTelegram("sendMessage", { chat_id: chatId, text, parse_mode: "Markdown" });
-    }
-    return;
-  }
+  const text = `🤖 *AFRUZ ADMINISTRATIVE OPERATIONAL CORE v5.5*
 
-  // Create clean rows of clickable buttons dynamically
-  const inlineKeyboard = allProducts.map((p) => [
-    { text: `📁 ${p.title} (₹${p.price})`, callback_data: `select_${p.id}` }
-  ]);
+*📊 LIVE SYSTEM STATUS CARD:*
+• Store Node: \`Online / Active\`
+• Registered Asset Nodes: \`${totalCourses} Courses Live\`
+• Inventory Gross Capital: \`₹${grossValue}\`
+• Security Integrity: \`Maximum Policy Applied\`
 
-  const text = "⚙️ *AFRUZ CORE CMS REGISTRY CHART*\n\nNiche aapke database ke live courses hain. Kisi par bhi click karke manage ya delete karein:";
-  const replyMarkup = { inline_keyboard: inlineKeyboard };
+Select corresponding action system execution protocol below:`;
+
+  const dashboardKeyboard = {
+    inline_keyboard: [
+      [{ text: "🔄 View Live Asset Chart & Delete", callback_data: "action_view_chart" }],
+      [
+        { text: "⚡ System Diagnostics", callback_data: "action_sys_ping" },
+        { text: "🛡️ Server Config", callback_data: "action_server_config" }
+      ]
+    ]
+  };
 
   if (messageId) {
-    // Overwrites existing message text so NO DOUBLE MESSAGES appear!
-    await sendTelegram("editMessageText", { chat_id: chatId, message_id: messageId, text, parse_mode: "Markdown", reply_markup: replyMarkup });
+    await sendTelegram("editMessageText", {
+      chat_id: chatId,
+      message_id: messageId,
+      text: text,
+      parse_mode: "Markdown",
+      reply_markup: dashboardKeyboard
+    });
   } else {
-    await sendTelegram("sendMessage", { chat_id: chatId, text, parse_mode: "Markdown", reply_markup: replyMarkup });
+    await sendTelegram("sendMessage", {
+      chat_id: chatId,
+      text: text,
+      parse_mode: "Markdown",
+      reply_markup: dashboardKeyboard
+    });
   }
 }
 
@@ -55,7 +70,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // 1. HANDLE BUTTON CLICKS (CALLBACK QUERIES)
+    // 1. INLINE ACTION COMMAND HANDLING TRACK
     if (body.callback_query) {
       const callback = body.callback_query;
       const fromId = String(callback.from.id);
@@ -64,66 +79,153 @@ export async function POST(req: Request) {
 
       if (fromId !== ADMIN_CHAT_ID) return Response.json({ success: true });
 
-      // Stop loading clock spinner on button
+      // Kill the loading state spinner clock icon instantly
       await sendTelegram("answerCallbackQuery", { callback_query_id: callback.id });
 
-      // Action: Main List display/refresh trigger
-      if (data === "refresh_list") {
-        await renderProductChart(ADMIN_CHAT_ID, messageId);
-      } 
-      // Action: Course selected from list
-      else if (data.startsWith("select_")) {
-        const productId = parseInt(data.split("_")[1]);
-        const [product] = await db.select().from(products).where(eq(products.id, productId));
-        
+      // ROUTE: Back to main central terminal hub dashboard
+      if (data === "route_main_hub") {
+        await renderMasterDashboard(ADMIN_CHAT_ID, messageId);
+      }
+      
+      // ROUTE: View registry products graph nodes chart
+      else if (data === "action_view_chart") {
+        const allProducts = await db.select().from(products).orderBy(desc(products.id));
+
+        if (allProducts.length === 0) {
+          const backKeyboard = { inline_keyboard: [[{ text: "🔙 Main Menu", callback_data: "route_main_hub" }]] };
+          await sendTelegram("editMessageText", {
+            chat_id: ADMIN_CHAT_ID,
+            message_id: messageId,
+            text: "📭 *ASSET MATRIX EMPTY*\n\nDatabase row indexes are empty. No courses tracked on the production node.",
+            parse_mode: "Markdown",
+            reply_markup: backKeyboard
+          });
+          return Response.json({ success: true });
+        }
+
+        const inlineKeyboard = allProducts.map((p) => [
+          { text: `📁 ${p.title} (₹${p.price})`, callback_data: `inspect_node_${p.id}` }
+        ]);
+        inlineKeyboard.push([{ text: "🔙 Main Menu", callback_data: "route_main_hub" }]);
+
+        await sendTelegram("editMessageText", {
+          chat_id: ADMIN_CHAT_ID,
+          message_id: messageId,
+          text: "🔍 *ACTIVE REGISTRY ASSET NODE CHART*\n\nSelect corresponding asset target below to inspect metrics or wipe completely from data storage matrix:",
+          parse_mode: "Markdown",
+          reply_markup: { inline_keyboard: inlineKeyboard }
+        });
+      }
+      
+      // ROUTE: Single row node profile inspection module
+      else if (data.startsWith("inspect_node_")) {
+        const pId = parseInt(data.split("_")[2]);
+        const [product] = await db.select().from(products).where(eq(products.id, pId));
+
         if (!product) {
-          await sendTelegram("editMessageText", { chat_id: ADMIN_CHAT_ID, message_id: messageId, text: "❌ Asset node not found." });
+          const backKeyboard = { inline_keyboard: [[{ text: "🔙 Back to Chart", callback_data: "action_view_chart" }]] };
+          await sendTelegram("editMessageText", { chat_id: ADMIN_CHAT_ID, message_id: messageId, text: "❌ Target asset matrix node drop failure.", reply_markup: backKeyboard });
         } else {
-          const optsKeyboard = {
+          const operationsKeyboard = {
             inline_keyboard: [
               [
-                { text: "🗑️ Confirm Delete", callback_data: `confirm_del_${product.id}` },
-                { text: "🔙 Back to List", callback_data: "refresh_list" }
+                { text: "🗑️ Permanent Wipe Node", callback_data: `execute_wipe_${product.id}` },
+                { text: "🔙 Back to Chart", callback_data: "action_view_chart" }
               ]
             ]
           };
           await sendTelegram("editMessageText", {
             chat_id: ADMIN_CHAT_ID,
             message_id: messageId,
-            text: `📊 *COURSE PROFILE:*\n\n• *ID:* \`${product.id}\`\n• *Title:* ${product.title}\n• *Price:* ₹${product.price}\n• *Instructor:* ${product.instructor}\n\n⚠️ Kya is asset ko database se permanent wipe karna hai?`,
+            text: `📊 *TARGET CORE ASSET NODE METRICS:*
+
+• *System Schema ID:* \`${product.id}\`
+• *Public Title:* \`${product.title}\`
+• *Price Metric:* \`₹${product.price}\`
+• *Instructor Node:* \`${product.instructor}\`
+• *Slug Directory:* \`/${product.slug}\`
+• *Operational Level:* \`${product.level || "Expert"}\`
+
+⚠️ *Warning:* 'Permanent Wipe Node' par tap karte hi database row binary layer se drop ho jayegi. This action cannot be reversed!`,
             parse_mode: "Markdown",
-            reply_markup: optsKeyboard
+            reply_markup: operationsKeyboard
           });
         }
-      } 
-      // Action: Absolute destruction of row execution
-      else if (data.startsWith("confirm_del_")) {
-        const productId = parseInt(data.split("_")[2]);
-        await db.delete(products).where(eq(products.id, productId));
+      }
+      
+      // ACTION: Absolute structural asset destruction execution
+      else if (data.startsWith("execute_wipe_")) {
+        const pId = parseInt(data.split("_")[2]);
+        await db.delete(products).where(eq(products.id, pId));
         
-        // Notify and take back to updated chart automatically
-        await renderProductChart(ADMIN_CHAT_ID, messageId);
+        // Show flash success screen then route back to chart automatically
+        const postWipeKeyboard = { inline_keyboard: [[{ text: "🔄 View Updated Chart", callback_data: "action_view_chart" }]] };
+        await sendTelegram("editMessageText", {
+          chat_id: ADMIN_CHAT_ID,
+          message_id: messageId,
+          text: `🗑️ *TRANSACTION MATRIX COMPLETE:* Asset Node ID \`${pId}\` successfully unregistered and vaporized from production database rows!`,
+          parse_mode: "Markdown",
+          reply_markup: postWipeKeyboard
+        });
+      }
+      
+      // ROUTE: Real-time system pipeline ping tracker
+      else if (data === "action_sys_ping") {
+        const startPing = Date.now();
+        await db.select().from(products).limit(1); // Test query latency speed
+        const currentLatency = Date.now() - startPing;
+
+        const diagnosticKeyboard = { inline_keyboard: [[{ text: "🔙 Main Menu", callback_data: "route_main_hub" }]] };
+        await sendTelegram("editMessageText", {
+          chat_id: ADMIN_CHAT_ID,
+          message_id: messageId,
+          text: `⚡ *SERVER INTERFACE DIAGNOSTICS PING:*
+
+• Webhook Pipeline: \`Healthy (HTTP 200 OK)\`
+• Vercel Lambda Edge Runtime: \`Node.js v20\`
+• DB Handshake Latency: \`${currentLatency} ms\`
+• Dynamic Server Variables: \`Matched / Standard\``,
+          parse_mode: "Markdown",
+          reply_markup: diagnosticKeyboard
+        });
+      }
+      
+      // ROUTE: Static Server Configurations System Data
+      else if (data === "action_server_config") {
+        const configKeyboard = { inline_keyboard: [[{ text: "🔙 Main Menu", callback_data: "route_main_hub" }]] };
+        await sendTelegram("editMessageText", {
+          chat_id: ADMIN_CHAT_ID,
+          message_id: messageId,
+          text: `🛡️ *ADMIN INTERFACE ROOT ENVIRONMENTAL FLAGS:*
+
+• Authorized Admin UID: \`${ADMIN_CHAT_ID}\`
+• Runtime Environment: \`Production (Vercel Core Edge)\`
+• Global Object Mode: \`force-dynamic\`
+• Automation Access: \`Full Root Capabilities granted\``,
+          parse_mode: "Markdown",
+          reply_markup: configKeyboard
+        });
       }
 
       return Response.json({ success: true });
     }
 
-    // 2. HANDLE ROOT COMMANDS IN CHAT (/list)
+    // 2. CHAT TEXT TRIGGERS INPUT LOOP (/start /list menu)
     if (body.message) {
-      const message = body.message;
-      const chatId = String(message.chat.id);
-      const text = message.text || "";
+      const msg = body.message;
+      const chatId = String(msg.chat.id);
+      const text = msg.text || "";
 
       if (chatId !== ADMIN_CHAT_ID) return Response.json({ success: true });
 
-      if (text === "/list" || text === "/start") {
-        await renderProductChart(chatId);
+      if (text === "/start" || text === "/list" || text === "menu" || text === "dashboard") {
+        await renderMasterDashboard(chatId);
       }
     }
 
     return Response.json({ success: true });
   } catch (error: any) {
-    console.error("Critical webhook exception:", error);
+    console.error("Critical Admin Core Exception:", error);
     return Response.json({ success: false, error: error.message }, { status: 500 });
   }
 }

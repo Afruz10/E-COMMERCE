@@ -22,32 +22,32 @@ async function sendTelegram(method: string, payload: any) {
   }
 }
 
-// 🤖 NEW SIMPLIFIED GEMINI PARSER CONNECTOR
+// 🤖 FIXES GENERATION ERROR & IMPLEMENTS STRICT JSON STRUCTURE
 async function askGeminiToParse(userPrompt: string, dbSummary: string) {
   if (!GEMINI_API_KEY) {
     return { action: "UNKNOWN", reply: "❌ Vercel Config Error: GEMINI_API_KEY environment variable missing!" };
   }
 
-  // Pure clean text formatting prompt
-  const fullPromptText = `You are Afruz Core Web Server Control AI. 
-Analyze the user's request for a Next.js store database.
+  const systemInstruction = `You are Afruz Core Web Server Control AI. Analyze the user's request for a Next.js store database.
 Current Live Database Products Summary: ${dbSummary}
 
-You must respond with ONLY a raw JSON object, no markdown blocks, no formatting text. Follow this structure strictly:
+You must respond with a clean JSON object based on the requested action. Do not add markdown or extra text.
 For Creating: { "action": "ADD", "title": "...", "subtitle": "...", "price": "...", "instructor": "...", "imageUrl": "..." }
 For Updating: { "action": "UPDATE", "id": 12, "title": "...", "subtitle": "...", "price": "...", "instructor": "...", "imageUrl": "..." }
 For Deleting: { "action": "DELETE", "id": 12 }
-If vague: { "action": "UNKNOWN", "reply": "Mujhe sahi database command nahi mila, Afruz bhai." }
-
-User Command: "${userPrompt}"`;
+If vague: { "action": "UNKNOWN", "reply": "Mujhe sahi database command nahi mila, Afruz bhai." }`;
 
   try {
-    // Standard secure Google API request structure
+    // 🔗 Updated Endpoint Structure explicitly using v1beta models path correctly
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: fullPromptText }] }]
+        contents: [{ parts: [{ text: `User Command: "${userPrompt}"` }] }],
+        systemInstruction: { parts: [{ text: systemInstruction }] },
+        generationConfig: {
+          responseMimeType: "application/json" // ✨ Forces Gemini to return pure JSON without formatting bugs!
+        }
       })
     });
     
@@ -57,14 +57,12 @@ User Command: "${userPrompt}"`;
       return { action: "UNKNOWN", reply: `❌ GOOGLE ERROR: ${data.error.message}` };
     }
     
-    let jsonText = data.candidates[0].content.parts[0].text.trim();
-    
-    // Safety check to strip markdown if Gemini adds it anyway
-    if (jsonText.startsWith("```json")) jsonText = jsonText.replace("```json", "");
-    if (jsonText.startsWith("```")) jsonText = jsonText.replace("```", "");
-    if (jsonText.endsWith("```")) jsonText = jsonText.slice(0, -3);
-    
-    return JSON.parse(jsonText.trim());
+    if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
+      return { action: "UNKNOWN", reply: "❌ Pipeline Timeout: Gemini unexpected response format structure." };
+    }
+
+    const jsonText = data.candidates[0].content.parts[0].text.trim();
+    return JSON.parse(jsonText);
   } catch (err: any) {
     return { action: "UNKNOWN", reply: `❌ System Parsing Error: ${err.message}` };
   }
@@ -74,7 +72,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // 1. Telegram Button Handlers (Keep it basic)
+    // 1. Telegram Button Handlers
     if (body.callback_query) {
       const callback = body.callback_query;
       if (String(callback.from.id) !== ADMIN_CHAT_ID) return Response.json({ success: true });
@@ -109,9 +107,9 @@ export async function POST(req: Request) {
       const aiResult = await askGeminiToParse(text, dbSummary);
 
       if (aiResult.action === "ADD") {
-        const slug = aiResult.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString().slice(-4);
+        const slug = (aiResult.title || "course").toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString().slice(-4);
         const newProduct: any = {
-          slug, title: aiResult.title,
+          slug, title: aiResult.title || "Untitled Course",
           subtitle: aiResult.subtitle || "Premium AI Asset Node",
           description: "Deployed smoothly via Telegram Admin Node Interface.",
           categorySlug: "courses", level: "Expert",
@@ -129,21 +127,33 @@ export async function POST(req: Request) {
       } 
       
       else if (aiResult.action === "UPDATE") {
+        if (!aiResult.id) {
+          await sendTelegram("sendMessage", { chat_id: chatId, text: "❌ Update failed: AI details me target Course ID trace nahi kar paya." });
+          return Response.json({ success: true });
+        }
+
+        // Fetch current values to handle partial updates cleanly
+        const existing = allProducts.find(p => p.id === Number(aiResult.id));
+        
         await db.update(products)
           .set({
-            title: aiResult.title,
-            subtitle: aiResult.subtitle,
-            price: String(aiResult.price),
-            instructor: aiResult.instructor,
-            accent: aiResult.imageUrl
+            title: aiResult.title || existing?.title,
+            subtitle: aiResult.subtitle || existing?.subtitle,
+            price: aiResult.price ? String(aiResult.price) : existing?.price,
+            instructor: aiResult.instructor || existing?.instructor,
+            accent: aiResult.imageUrl || existing?.accent
           })
-          .where(eq(products.id, aiResult.id));
+          .where(eq(products.id, Number(aiResult.id)));
 
         await sendTelegram("sendMessage", { chat_id: chatId, text: `✅ *AI Dynamic Update Success!* Registry ID ${aiResult.id} updated.` });
       } 
       
       else if (aiResult.action === "DELETE") {
-        await db.delete(products).where(eq(products.id, aiResult.id));
+        if (!aiResult.id) {
+          await sendTelegram("sendMessage", { chat_id: chatId, text: "❌ Delete failed: AI command me product ID specify nahi mila." });
+          return Response.json({ success: true });
+        }
+        await db.delete(products).where(eq(products.id, Number(aiResult.id)));
         await sendTelegram("sendMessage", { chat_id: chatId, text: `🗑️ *AI Wiped Successfully!* Registry ID ${aiResult.id} removed from DB.` });
       } 
       

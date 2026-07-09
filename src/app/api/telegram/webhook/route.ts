@@ -22,13 +22,14 @@ async function sendTelegram(method: string, payload: any) {
   }
 }
 
-// 🤖 CORE AI INTELLIGENCE INTERCEPTOR ENGINE (Stable Production v1 Endpoint)
+// 🤖 CORE AI INTELLIGENCE INTERCEPTOR ENGINE (Strict Structural v1 Core Content Mapping)
 async function askGeminiToParse(userPrompt: string, existingProductsSummary: string) {
   if (!GEMINI_API_KEY || GEMINI_API_KEY.trim() === "") {
     return { action: "UNKNOWN", reply: "❌ SYSTEM DIAGNOSTICS: process.env.GEMINI_API_KEY khali hai! Vercel me Environment Variable check karein." };
   }
 
-  const systemInstruction = `You are Afruz Core Web Server Control AI. Analyze the user's natural language request regarding a Next.js course store database management system.
+  // Merging structural roles instructions context mapping to prevent structural payload 400 errors
+  const structuralSystemPrompt = `You are Afruz Core Web Server Control AI. Analyze the user's natural language request regarding a Next.js course store database management system.
 Current Live Database Rows summary: ${existingProductsSummary}
 
 You must output ONLY a valid JSON object matching one of these strict architectural action formats, nothing else, no markdown formatting blocks:
@@ -46,17 +47,22 @@ If the user text is just greeting or vague, output:
 { "action": "UNKNOWN", "reply": "Mujhe database modification commands clear nahi mile, Afruz bhai." }`;
 
   try {
-    // Timeout limits management logic to prevent freezing
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 12000); // 12 seconds boundary limit
 
-    // 🌐 FIXED PATH: Using stable v1 production API endpoint path to solve the 404 error
+    // 🌐 FIXED ROUTE STRUCT: Merging prompt context values directly into structured model contents array layer
     const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: userPrompt }] }],
-        systemInstruction: { parts: [{ text: systemInstruction }] }
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: `${structuralSystemPrompt}\n\nUser Input Data Command:\n"${userPrompt}"` }
+            ]
+          }
+        ]
       }),
       signal: controller.signal
     });

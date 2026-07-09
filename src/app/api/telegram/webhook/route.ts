@@ -22,48 +22,54 @@ async function sendTelegram(method: string, payload: any) {
   }
 }
 
-// 🤖 CORE AI INTELLIGENCE INTERCEPTOR ENGINE (Gemini API Native Fetch Loop)
+// 🤖 UPGRADED FAIL-SAFE AI PARSER NODE
 async function askGeminiToParse(userPrompt: string, existingProductsSummary: string) {
   if (!GEMINI_API_KEY) {
     return { action: "UNKNOWN", reply: "❌ Vercel Configuration Error: GEMINI_API_KEY Missing in Environment Locker." };
   }
 
-  const systemInstruction = `
-    You are Afruz Core Web Server Control AI. Analyze the user's natural language request regarding a Next.js course store database management system.
-    Current Live Database Rows summary: ${existingProductsSummary}
-    
-    You must output ONLY a valid JSON object matching one of these strict architectural action formats, nothing else, no markdown formatting blocks:
-    
-    For Creating/Adding:
-    { "action": "ADD", "title": "...", "subtitle": "...", "price": "...", "instructor": "...", "imageUrl": "..." }
-    
-    For Modifying/Updating (Identify matching ID from rows summary):
-    { "action": "UPDATE", "id": 12, "title": "...", "subtitle": "...", "price": "...", "instructor": "...", "imageUrl": "..." }
-    
-    For Erasing/Deleting (Identify matching ID from rows summary):
-    { "action": "DELETE", "id": 12 }
-    
-    If the user text is just greeting or vague, output:
-    { "action": "UNKNOWN", "reply": "Mujhe database modification commands clear nahi mile, Afruz bhai." }
-  `;
+  const systemInstruction = `You are Afruz Core Web Server Control AI. Analyze the user's natural language request regarding a Next.js course store database management system.
+Current Live Database Rows summary: ${existingProductsSummary}
+
+You must output ONLY a valid JSON object matching one of these strict architectural action formats, nothing else:
+For Creating/Adding: { "action": "ADD", "title": "...", "subtitle": "...", "price": "...", "instructor": "...", "imageUrl": "..." }
+For Modifying/Updating: { "action": "UPDATE", "id": 12, "title": "...", "subtitle": "...", "price": "...", "instructor": "...", "imageUrl": "..." }
+For Erasing/Deleting: { "action": "DELETE", "id": 12 }
+If vague: { "action": "UNKNOWN", "reply": "Mujhe database commands clear nahi mile, Afruz bhai." }`;
 
   try {
+    // Timeout limits management logic
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds boundary limit
+
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: userPrompt }] }],
-        systemInstruction: { parts: [{ text: systemInstruction }] },
-        generationConfig: { responseMimeType: "application/json" }
-      })
+        systemInstruction: { parts: [{ text: systemInstruction }] }
+      }),
+      signal: controller.signal
     });
     
+    clearTimeout(timeoutId);
     const data = await response.json();
-    const jsonText = data.candidates[0].content.parts[0].text;
-    return JSON.parse(jsonText);
-  } catch (err) {
-    console.error("Gemini runtime parsing error:", err);
-    return { action: "UNKNOWN", reply: "❌ Gemini server parsing error pipeline timeout." };
+    
+    if (!data.candidates || data.candidates.length === 0) {
+      return { action: "UNKNOWN", reply: "❌ Gemini API layer rejected token access. Active variables matrix verify karein." };
+    }
+
+    let jsonText = data.candidates[0].content.parts[0].text.trim();
+    
+    // Removing string wrappers constraints patterns safely
+    if (jsonText.startsWith("```json")) jsonText = jsonText.replace("```json", "");
+    if (jsonText.startsWith("```")) jsonText = jsonText.replace("```", "");
+    if (jsonText.endsWith("```")) jsonText = jsonText.slice(0, -3);
+    
+    return JSON.parse(jsonText.trim());
+  } catch (err: any) {
+    console.error("Gemini processing fault loop:", err);
+    return { action: "UNKNOWN", reply: `❌ Request dropped. Token invalidation or latency issue. Nayi fresh API key set karke Vercel redeploy check karein.` };
   }
 }
 

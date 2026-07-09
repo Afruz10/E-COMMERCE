@@ -4,12 +4,12 @@ import { eq, desc } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
-// 🔐 TOKENS & ENVIRONMENT VARIABLES (SECURE SYSTEM LOCKER)
+// 🔐 SECURE CONFIGURATION LOCKER
 const BOT_TOKEN = "8911554064:AAH4QUzD2aWDn3dHBjeaf3pLCAJnND-Csnw";
-const ADMIN_CHAT_ID = "5593004632"; // Strict Owner Auth
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
+const ADMIN_CHAT_ID = "5593004632"; // Only Afruz can access
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-// Helper: Telegram API transaction request router
+// Telegram Response Sender
 async function sendTelegram(method: string, payload: any) {
   try {
     await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
@@ -18,76 +18,55 @@ async function sendTelegram(method: string, payload: any) {
       body: JSON.stringify(payload),
     });
   } catch (err) {
-    console.error("Telegram API communication failure:", err);
+    console.error("Telegram API Error:", err);
   }
 }
 
-// 🤖 CORE AI INTELLIGENCE INTERCEPTOR ENGINE (Strict Structural v1beta Contents Layout)
-async function askGeminiToParse(userPrompt: string, existingProductsSummary: string) {
-  if (!GEMINI_API_KEY || GEMINI_API_KEY.trim() === "") {
-    return { action: "UNKNOWN", reply: "❌ SYSTEM DIAGNOSTICS: process.env.GEMINI_API_KEY khali hai! Vercel me Environment Variable check karein." };
+// 🤖 NEW SIMPLIFIED GEMINI PARSER CONNECTOR
+async function askGeminiToParse(userPrompt: string, dbSummary: string) {
+  if (!GEMINI_API_KEY) {
+    return { action: "UNKNOWN", reply: "❌ Vercel Config Error: GEMINI_API_KEY environment variable missing!" };
   }
 
-  const structuralSystemPrompt = `You are Afruz Core Web Server Control AI. Analyze the user's natural language request regarding a Next.js course store database management system.
-Current Live Database Rows summary: ${existingProductsSummary}
+  // Pure clean text formatting prompt
+  const fullPromptText = `You are Afruz Core Web Server Control AI. 
+Analyze the user's request for a Next.js store database.
+Current Live Database Products Summary: ${dbSummary}
 
-You must output ONLY a valid JSON object matching one of these strict architectural action formats, nothing else, no markdown formatting blocks:
+You must respond with ONLY a raw JSON object, no markdown blocks, no formatting text. Follow this structure strictly:
+For Creating: { "action": "ADD", "title": "...", "subtitle": "...", "price": "...", "instructor": "...", "imageUrl": "..." }
+For Updating: { "action": "UPDATE", "id": 12, "title": "...", "subtitle": "...", "price": "...", "instructor": "...", "imageUrl": "..." }
+For Deleting: { "action": "DELETE", "id": 12 }
+If vague: { "action": "UNKNOWN", "reply": "Mujhe sahi database command nahi mila, Afruz bhai." }
 
-For Creating/Adding:
-{ "action": "ADD", "title": "...", "subtitle": "...", "price": "...", "instructor": "...", "imageUrl": "..." }
-
-For Modifying/Updating (Identify matching ID from rows summary):
-{ "action": "UPDATE", "id": 12, "title": "...", "subtitle": "...", "price": "...", "instructor": "...", "imageUrl": "..." }
-
-For Erasing/Deleting (Identify matching ID from rows summary):
-{ "action": "DELETE", "id": 12 }
-
-If the user text is just greeting or vague, output:
-{ "action": "UNKNOWN", "reply": "Mujhe database modification commands clear nahi mile, Afruz bhai." }`;
+User Command: "${userPrompt}"`;
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000); // 12 seconds limit
-
-    // 🌐 ABSOLUTE FIX: v1beta endpoint structure combined with unified array layout payload
+    // Standard secure Google API request structure
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { text: `${structuralSystemPrompt}\n\nUser Input Data Command:\n"${userPrompt}"` }
-            ]
-          }
-        ]
-      }),
-      signal: controller.signal
+        contents: [{ parts: [{ text: fullPromptText }] }]
+      })
     });
     
-    clearTimeout(timeoutId);
     const data = await response.json();
     
     if (data.error) {
-      return { action: "UNKNOWN", reply: `❌ GOOGLE API ERROR: ${data.error.message}. Code: ${data.error.code}` };
+      return { action: "UNKNOWN", reply: `❌ GOOGLE ERROR: ${data.error.message}` };
     }
     
-    if (!data.candidates || data.candidates.length === 0) {
-      return { action: "UNKNOWN", reply: "❌ Gemini API response candidates list zero." };
-    }
-
     let jsonText = data.candidates[0].content.parts[0].text.trim();
     
-    // Clean string markdown formats safely
+    // Safety check to strip markdown if Gemini adds it anyway
     if (jsonText.startsWith("```json")) jsonText = jsonText.replace("```json", "");
     if (jsonText.startsWith("```")) jsonText = jsonText.replace("```", "");
     if (jsonText.endsWith("```")) jsonText = jsonText.slice(0, -3);
     
     return JSON.parse(jsonText.trim());
   } catch (err: any) {
-    console.error("Gemini processing fault loop:", err);
-    return { action: "UNKNOWN", reply: `❌ Request dropped. Network latency issue or parse break: ${err.message}` };
+    return { action: "UNKNOWN", reply: `❌ System Parsing Error: ${err.message}` };
   }
 }
 
@@ -95,95 +74,87 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // 1. HANDLE INLINE BUTTON CLICKS (CALLBACK QUERIES)
+    // 1. Telegram Button Handlers (Keep it basic)
     if (body.callback_query) {
       const callback = body.callback_query;
-      const messageId = callback.message.message_id;
       if (String(callback.from.id) !== ADMIN_CHAT_ID) return Response.json({ success: true });
       await sendTelegram("answerCallbackQuery", { callback_query_id: callback.id });
-
-      if (callback.data === "menu_main") {
-        await sendTelegram("editMessageText", {
-          chat_id: ADMIN_CHAT_ID,
-          message_id: messageId,
-          text: "🤖 *AFRUZ CORE OPERATIONAL SYSTEM BOT v4.0 (AI SCRIPT SAFE)*\n\nAb aap kisi bhi simple language ya instructions me message bhej sakte hain, Gemini AI automatic secure parse karke database live update karega!",
-          parse_mode: "Markdown"
-        });
-      }
       return Response.json({ success: true });
     }
 
-    // 2. 🧠 REAL-TIME NATURAL LANGUAGE INTERACTION HANDLING
+    // 2. Main Chat Processor
     if (body.message) {
       const msg = body.message;
       const chatId = String(msg.chat.id);
       const text = msg.text || "";
 
+      // Security block
       if (chatId !== ADMIN_CHAT_ID) return Response.json({ success: true });
 
       if (text === "/start" || text === "/list") {
         await sendTelegram("sendMessage", {
           chat_id: chatId,
-          text: "🤖 *SYSTEM ACTIVE:* Afruz bhai, koi bhi instructions normal hinglish ya english me likhein (e.g., *'ek naya course add karo...'* ya *'course id 5 delete kar do'*). Base layout pipeline fully safe hai."
+          text: "🤖 *NEW AI REGISTRY CORE V5.0 ACTIVE*\n\nAfruz bhai, ab aaram se plain language me bolo, jaise:\n• *'ek naya course add karo free fire scripting price 199'*\n• *'ID 5 wale course ka price 299 kar do'*\n• *'ID 3 ko delete karo'*"
         });
         return Response.json({ success: true });
       }
 
-      // Fetch active items data context matching
+      // Fetch dynamic products to give AI real-time context
       const allProducts = await db.select().from(products).orderBy(desc(products.id));
       const dbSummary = allProducts.map(p => `[ID: ${p.id}, Title: ${p.title}, Price: ${p.price}, Instructor: ${p.instructor}]`).join("; ");
 
       await sendTelegram("sendChatAction", { chat_id: chatId, action: "typing" });
       
-      const aiDecision = await askGeminiToParse(text, dbSummary);
+      // Process input directly with Gemini
+      const aiResult = await askGeminiToParse(text, dbSummary);
 
-      if (aiDecision.action === "ADD") {
-        const slug = aiDecision.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString().slice(-4);
-        const insertData: any = {
-          slug, title: aiDecision.title,
-          subtitle: aiDecision.subtitle || "AI Managed Assets Module",
-          description: "Database transaction pipe executed safely via Gemini Webhook Automation system context layer.",
+      if (aiResult.action === "ADD") {
+        const slug = aiResult.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString().slice(-4);
+        const newProduct: any = {
+          slug, title: aiResult.title,
+          subtitle: aiResult.subtitle || "Premium AI Asset Node",
+          description: "Deployed smoothly via Telegram Admin Node Interface.",
           categorySlug: "courses", level: "Expert",
-          price: String(aiDecision.price || "99"), compareAtPrice: String(Number(aiDecision.price || 99) * 2),
-          durationHours: "15", lessons: 40, rating: "5.0", reviewCount: 10,
-          instructor: aiDecision.instructor || "Afruz Node", instructorTitle: "AI Consultant",
-          accent: aiDecision.imageUrl || "#cyan", glyph: "brain",
-          highlights: JSON.stringify(["100% Automated"]),
-          curriculum: JSON.stringify([{ title: "Module 1", lessons: ["Overview Core"] }]),
-          outcomes: JSON.stringify(["Scale Processing Operations"]), featured: true
+          price: String(aiResult.price || "99"), compareAtPrice: String(Number(aiResult.price || 99) * 2),
+          durationHours: "12", lessons: 30, rating: "5.0", reviewCount: 5,
+          instructor: aiResult.instructor || "Afruz", instructorTitle: "Lead Engineer",
+          accent: aiResult.imageUrl || "#cyan", glyph: "terminal",
+          highlights: JSON.stringify(["Fully Automated"]),
+          curriculum: JSON.stringify([{ title: "Module 1", lessons: ["Core Operations"] }]),
+          outcomes: JSON.stringify(["Database Managed"]), featured: true
         };
 
-        await (db.insert(products).values([insertData]) as any);
-        await sendTelegram("sendMessage", { chat_id: chatId, text: `🎉 *AI Sync Complete: New Product Deployed!*\n\n*Title:* ${aiDecision.title}\n*Price:* ₹${aiDecision.price}\n*Instructor:* ${aiDecision.instructor}` });
+        await (db.insert(products).values([newProduct]) as any);
+        await sendTelegram("sendMessage", { chat_id: chatId, text: `🎉 *AI Dynamic Add Success!*\n\n*Course:* ${aiResult.title}\n*Price:* ₹${aiResult.price}\n*Instructor:* ${aiResult.instructor}` });
       } 
       
-      else if (aiDecision.action === "UPDATE") {
+      else if (aiResult.action === "UPDATE") {
         await db.update(products)
           .set({
-            title: aiDecision.title,
-            subtitle: aiDecision.subtitle,
-            price: String(aiDecision.price),
-            instructor: aiDecision.instructor,
-            accent: aiDecision.imageUrl
+            title: aiResult.title,
+            subtitle: aiResult.subtitle,
+            price: String(aiResult.price),
+            instructor: aiResult.instructor,
+            accent: aiResult.imageUrl
           })
-          .where(eq(products.id, aiDecision.id));
+          .where(eq(products.id, aiResult.id));
 
-        await sendTelegram("sendMessage", { chat_id: chatId, text: `✅ *AI Sync Complete: Target Registry ID ${aiDecision.id} Modified!*` });
+        await sendTelegram("sendMessage", { chat_id: chatId, text: `✅ *AI Dynamic Update Success!* Registry ID ${aiResult.id} updated.` });
       } 
       
-      else if (aiDecision.action === "DELETE") {
-        await db.delete(products).where(eq(products.id, aiDecision.id));
-        await sendTelegram("sendMessage", { chat_id: chatId, text: `🗑️ *AI Sync Complete: Target Row Entity ID ${aiDecision.id} wiped out from schema database registry matrix!*` });
+      else if (aiResult.action === "DELETE") {
+        await db.delete(products).where(eq(products.id, aiResult.id));
+        await sendTelegram("sendMessage", { chat_id: chatId, text: `🗑️ *AI Wiped Successfully!* Registry ID ${aiResult.id} removed from DB.` });
       } 
       
       else {
-        await sendTelegram("sendMessage", { chat_id: chatId, text: aiDecision.reply || "Instructions clear nahi ho payi pipeline matrix parser parameters block me." });
+        await sendTelegram("sendMessage", { chat_id: chatId, text: aiResult.reply || "Kuch samajh nahi aaya bhai, please specifications clear likho." });
       }
     }
 
     return Response.json({ success: true });
   } catch (error: any) {
-    console.error("Critical AI webhook breakdown loop:", error);
+    console.error("Fatal Operational Loop Error:", error);
     return Response.json({ success: false, error: error.message }, { status: 500 });
   }
 }

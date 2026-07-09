@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 const BOT_TOKEN = "8911554064:AAH4QUzD2aWDn3dHBjeaf3pLCAJnND-Csnw";
 const ADMIN_CHAT_ID = "5593004632";
 // Yahan apni direct Google Studio key string variables me inject karo
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "YOUR_GEMINI_API_KEY_HERE"; 
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AIzaSyBLsm0M_vQsLVp4vketFBX_TPn6hl9ddew"; 
 
 async function sendTelegram(method: string, payload: any) {
   await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {

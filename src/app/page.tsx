@@ -80,7 +80,7 @@ export default async function HomePage() {
     all.reduce((s, p) => s + p.rating, 0) / Math.max(1, all.length);
 
   return (
-    <div className="bg-ink min-h-screen text-cream">
+    <div className="bg-ink min-h-screen text-cream overflow-x-hidden">
       {/* HERO */}
       <section className="relative overflow-hidden bg-ink text-cream">
         <Image
@@ -137,8 +137,11 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* 🎨 GRADIENT MIX BORDER LINE (TOP) */}
+      <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-violet/50 via-[#9b8dff]/70 via-gold/50 to-transparent" />
+
       {/* MARQUEE */}
-      <div className="border-y border-cream/10 bg-cream/5 py-3.5 backdrop-blur">
+      <div className="bg-cream/5 py-4 backdrop-blur">
         <div className="relative flex overflow-hidden">
           <div className="animate-marquee flex shrink-0 items-center gap-10 pr-10">
             {[...marquee, ...marquee].map((m, i) => (
@@ -154,6 +157,9 @@ export default async function HomePage() {
         </div>
       </div>
 
+      {/* 🎨 GRADIENT MIX BORDER LINE (BOTTOM) */}
+      <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-gold/40 via-[#9b8dff]/60 via-violet/40 to-transparent" />
+
       {/* COLLECTIONS */}
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
@@ -161,7 +167,7 @@ export default async function HomePage() {
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-violet">
               Featured collections
             </p>
-            <h2 className="mt-2 font-display text-4xl font-semibold tracking-tight text-cream">
+            <h2 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white">
               Find your path
             </h2>
           </div>
@@ -173,7 +179,6 @@ export default async function HomePage() {
           </Link>
         </div>
 
-        {/* 🎨 DYNAMIC GRADIENT MIX FIXED HERE */}
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {categories.map((c) => {
             const count = all.filter((p) => p.categorySlug === c.slug).length;
@@ -211,8 +216,11 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* 🎨 SEPARATOR GRADIENT MIX LINE */}
+      <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-cream/10 to-transparent" />
+
       {/* FEATURED PRODUCTS */}
-      <section className="bg-cream/5 py-20 border-y border-cream/5">
+      <section className="bg-cream/5 py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -237,6 +245,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* 🎨 SEPARATOR GRADIENT MIX LINE */}
+      <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-cream/10 to-transparent" />
 
       {/* WHY */}
       <section id="why" className="mx-auto max-w-7xl px-4 py-24 sm:px-6">
@@ -272,11 +283,13 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* 🎨 SEPARATOR GRADIENT MIX LINE */}
+      <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-cream/10 to-transparent" />
+
       {/* MISSION */}
-      <section id="mission" className="bg-zinc-950 py-24 border-t border-cream/5 text-cream">
+      <section id="mission" className="bg-zinc-950/40 py-24 text-cream">
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2">
           <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-cream/10">
-            {/* Fallback pattern background if image breaks */}
             <div className="absolute inset-0 bg-gradient-to-tr from-violet/20 to-ink" />
             <Image
               src="/images/mission.jpg"
@@ -317,6 +330,9 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* 🎨 SEPARATOR GRADIENT MIX LINE */}
+      <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-cream/10 to-transparent" />
+
       {/* TESTIMONIALS */}
       <section id="testimonials" className="mx-auto max-w-7xl px-4 py-24 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
@@ -350,6 +366,9 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* 🎨 SEPARATOR GRADIENT MIX LINE */}
+      <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-cream/10 to-transparent" />
 
       {/* CTA */}
       <section className="mx-auto max-w-7xl px-4 pb-8 sm:px-6">

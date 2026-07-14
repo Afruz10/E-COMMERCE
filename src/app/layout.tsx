@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/components/cart-context";
-import { Header } from "@/components/header";
+import Header from "@/components/header"; // FIXED: Removed curly braces for default import
 import { CartDrawer } from "@/components/cart-drawer";
 import { Footer } from "@/components/footer";
 
@@ -27,12 +27,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${jakarta.variable}`}>
-      <body className="min-h-screen antialiased">
+    // 🌐 FIXED: Added bg-[#030303] directly to HTML and Body tags to wipe out white spaces
+    <html lang="en" className={`${fraunces.variable} ${jakarta.variable} bg-[#030303]`}>
+      <body className="min-h-screen antialiased bg-[#030303] text-slate-100">
         <CartProvider>
           <Header />
           <CartDrawer />
-          <main>{children}</main>
+          <main className="bg-[#030303]">{children}</main>
           <Footer />
         </CartProvider>
       </body>

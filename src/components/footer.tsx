@@ -1,107 +1,98 @@
 import Link from "next/link";
-
-const cols = [
-  {
-    title: "Courses",
-    links: [
-      { label: "All Courses", href: "/products" },
-      { label: "Token Mastery", href: "/products?category=token-mastery" },
-      { label: "AI for Money", href: "/products?category=ai-for-money" },
-      { label: "AI for Good", href: "/products?category=ai-for-good" },
-      { label: "Builder Track", href: "/products?category=builder-track" },
-    ],
-  },
-  {
-    title: "Company",
-    links: [
-      { label: "Our Mission", href: "/#mission" },
-      { label: "Why AfruzStore", href: "/#why" },
-      { label: "Reviews", href: "/#testimonials" },
-      { label: "Browse", href: "/products" },
-    ],
-  },
-];
+import Image from "next/image";
 
 export function Footer() {
   return (
-    <footer className="mt-24 bg-ink text-cream">
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-        <div className="grid gap-12 lg:grid-cols-[1.5fr_1fr_1fr_1.2fr]">
-          <div>
-            <Link href="/" className="flex items-center gap-2.5">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-cream font-display text-lg font-semibold text-ink">
+    <footer className="border-t border-cream/10 bg-ink text-cream/70">
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <div className="xl:grid xl:grid-cols-3 xl:gap-8">
+          
+          {/* Brand Info */}
+          <div className="space-y-8 xl:col-span-1">
+            <div className="flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-cream font-display text-sm font-bold text-ink">
                 A
               </span>
-              <span className="font-display text-xl font-semibold">
+              <span className="font-display text-lg font-semibold text-white">
                 Afruz<span className="text-violet">Store</span>
               </span>
-            </Link>
-            <p className="mt-4 max-w-xs text-sm leading-relaxed text-cream/65">
-              Premium courses that teach you to use Claude with fewer tokens,
-              build AI for good, and turn your skills into real income.
+            </div>
+            <p className="max-w-xs text-sm leading-relaxed text-cream/60">
+              Premium courses that teach you to use Claude with fewer tokens, build AI for good, and turn your skills into real income.
             </p>
-            <div className="mt-5 flex gap-3">
-              {["𝕏", "in", "▶", "✉"].map((s) => (
-                <span
-                  key={s}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-cream/15 text-sm text-cream/70 transition-colors hover:border-cream/40 hover:text-cream"
-                >
+            {/* Social Icons Placeholder Grid */}
+            <div className="flex space-x-4">
+              {["x", "in", "yt", "mail"].map((s) => (
+                <span key={s} className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-cream/10 bg-cream/5 text-xs text-cream/40 hover:border-cream/30 hover:text-white transition-colors">
                   {s}
                 </span>
               ))}
             </div>
           </div>
 
-          {cols.map((col) => (
-            <div key={col.title}>
-              <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-cream/45">
-                {col.title}
-              </h4>
-              <ul className="mt-4 flex flex-col gap-2.5">
-                {col.links.map((l) => (
-                  <li key={l.label}>
-                    <Link
-                      href={l.href}
-                      className="text-sm text-cream/70 transition-colors hover:text-cream"
-                    >
-                      {l.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+          {/* Navigation Links Blocks */}
+          <div className="mt-12 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0">
+            <div className="md:grid md:grid-cols-2 md:gap-8">
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-white">
+                  Courses
+                </h3>
+                <ul className="mt-4 space-y-2">
+                  <li><Link href="/products" className="text-sm hover:text-cyan-400 transition-colors">All Courses</Link></li>
+                  <li><Link href="/products/claude-low-token-mastery" className="text-sm hover:text-cyan-400 transition-colors">Token Mastery</Link></li>
+                  <li><Link href="/products?category=money" className="text-sm hover:text-cyan-400 transition-colors">AI for Money</Link></li>
+                  <li><Link href="/products?category=good" className="text-sm hover:text-cyan-400 transition-colors">AI for Good</Link></li>
+                </ul>
+              </div>
+              <div className="mt-12 md:mt-0">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-white">
+                  Company
+                </h3>
+                <ul className="mt-4 space-y-2">
+                  <li><Link href="/#mission" className="text-sm hover:text-cyan-400 transition-colors">Our Mission</Link></li>
+                  <li><Link href="/#why" className="text-sm hover:text-cyan-400 transition-colors">Why AfruzStore</Link></li>
+                  <li><Link href="/#testimonials" className="text-sm hover:text-cyan-400 transition-colors">Reviews</Link></li>
+                  <li><Link href="/products" className="text-sm hover:text-cyan-400 transition-colors">Browse</Link></li>
+                </ul>
+              </div>
             </div>
-          ))}
 
-          <div>
-            <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-cream/45">
-              Stay in the loop
-            </h4>
-            <p className="mt-4 text-sm text-cream/65">
-              Token-saving tips and new course drops. No spam.
-            </p>
-            <form className="mt-4 flex overflow-hidden rounded-full border border-cream/15 bg-cream/5">
-              <input
-                type="email"
-                placeholder="you@email.com"
-                className="min-w-0 flex-1 bg-transparent px-4 py-2.5 text-sm text-cream placeholder:text-cream/40 focus:outline-none"
-              />
-              <button
-                type="button"
-                className="bg-violet px-4 text-sm font-semibold text-white"
-              >
-                Join
-              </button>
-            </form>
+            {/* Newsletter Input Box Form Node */}
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-white">
+                Stay in the loop
+              </h3>
+              <p className="mt-4 text-sm text-cream/60">
+                Token-saving tips and new course drops. No spam.
+              </p>
+              <form className="mt-4 sm:flex sm:max-w-md">
+                <input
+                  type="email"
+                  required
+                  placeholder="you@email.com"
+                  className="w-full rounded-2xl border border-cream/10 bg-zinc-950/50 px-4 py-2.5 text-sm text-white placeholder-cream/30 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 sm:max-w-xs"
+                />
+                <button
+                  type="submit"
+                  className="mt-3 flex w-full items-center justify-center rounded-2xl bg-violet px-5 py-2.5 text-sm font-semibold text-white hover:bg-violet/80 transition-colors sm:ml-3 sm:mt-0 sm:w-auto"
+                >
+                  Join
+                </button>
+              </form>
+            </div>
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-cream/10 pt-6 text-xs text-cream/50 sm:flex-row">
-          <p>© {new Date().getFullYear()} AfruzStore. All rights reserved.</p>
-          <p className="flex items-center gap-4">
-            <span className="cursor-pointer hover:text-cream/80">Privacy</span>
-            <span className="cursor-pointer hover:text-cream/80">Terms</span>
-            <span className="cursor-pointer hover:text-cream/80">Refunds</span>
+        {/* Bottom Rights Bar Layer */}
+        <div className="mt-12 border-t border-cream/5 pt-8 md:flex md:items-center md:justify-between">
+          <p className="text-xs text-cream/40 order-2 md:order-1">
+            &copy; 2026 AfruzStore. All rights reserved.
           </p>
+          <div className="mt-4 flex space-x-6 order-1 md:order-2 md:mt-0">
+            <Link href="/privacy" className="text-xs hover:text-white transition-colors">Privacy</Link>
+            <Link href="/terms" className="text-xs hover:text-white transition-colors">Terms</Link>
+            <Link href="/refunds" className="text-xs hover:text-white transition-colors">Refunds</Link>
+          </div>
         </div>
       </div>
     </footer>

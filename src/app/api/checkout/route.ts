@@ -3,10 +3,10 @@ import { orders } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
 
-// 🔐 SECURE GMAIL SYSTEM VAULT (Bina kisi install ke dynamic REST Fetch API)
+// 🔐 SECURE GMAIL SYSTEM VAULT (Dynamic REST Fetch API)
 const DYNAMIC_RESEND_KEY = process.env.RESEND_API_KEY;
 
-async function triggerDirectGmailReceipt(studentEmail: string, studentName: string, amount: string, referenceId: string) {
+async function triggerDirectGmailReceipt(studentEmail, studentName, amount, referenceId) {
   if (!DYNAMIC_RESEND_KEY) {
     console.error("❌ SYSTEM ALERT: process.env.RESEND_API_KEY environment locker is empty!");
     return;
@@ -20,7 +20,7 @@ async function triggerDirectGmailReceipt(studentEmail: string, studentName: stri
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "AfruzStore <onboarding@resend.dev>", // Custom domain domain verify hone ke baad change kar sakte ho
+        from: "AfruzStore <onboarding@resend.dev>", 
         to: studentEmail,
         subject: `🎉 Order Confirmed: Welcome to AfruzStore!`,
         html: `
@@ -56,13 +56,13 @@ async function triggerDirectGmailReceipt(studentEmail: string, studentName: stri
     } else {
       console.error("❌ REST Pipeline response failure error dump:", data);
     }
-  } catch (err: any) {
+  } catch (err) {
     console.error("Critical email system failure loop exceptions:", err.message);
   }
 }
 
 // 🤖 Telegram Order Notification Bot
-async function sendOrderNotification(message: string) {
+async function sendOrderNotification(message) {
   const botToken = "8911554064:AAH4QUzD2aWDn3dHBjeaf3pLCAJnND-Csnw";
   const chatId = "5593004632";
   try {
@@ -76,18 +76,21 @@ async function sendOrderNotification(message: string) {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req) {
   try {
     const body = await req.json();
     
-    // 🛠️ Fallback/Default values agar front-end se data miss ho jaye
+    // 🛠️ Dynamic fallbacks configuration
     const email = body.email || "guest@customer.com";
     const name = body.name || "Anonymous Customer";
     const items = body.items || [{ title: "AI Course", qty: 1 }];
-    const total = body.total || "99";
-    const reference = body.reference || `REF-${Date.now()}`; // Automatic unique ID generated
+    const total = body.total || "29"; 
+    const reference = body.reference || `REF-${Date.now()}`;
 
-    // Database me order save ho raha hai
+    // Extracting dynamic values for URL redirect pipelines
+    const primeProductTitle = items[0]?.title || "Premium Course";
+
+    // Database me order entry write sequence
     const [inserted] = await db.insert(orders).values({
       reference,
       email,
@@ -98,7 +101,7 @@ export async function POST(req: Request) {
       status: "paid",
     }).returning();
 
-    // 🔥 1. INSTANT TELEGRAM ALERT FOR ORDER!
+    // 📬 1. TELEGRAM BOT NOTIFICATION TRIGGER
     const orderMessage = `🎉 *Afruz Bhai! Naya Order Aaya Hai!* 💰\n\n` +
       `👤 *Name:* ${name}\n` +
       `📧 *Email:* ${email}\n` +
@@ -107,11 +110,17 @@ export async function POST(req: Request) {
 
     await sendOrderNotification(orderMessage);
 
-    // 🚀 2. AUTOMATED EMAIL DISPATCH TO CUSTOMER!
-    // Database and Telegram confirmation ke turant baad user ko receipt chali jayegi
+    // 🚀 2. GMAIL CLIENT INVOICE INJECTION
     await triggerDirectGmailReceipt(email, name, String(total), reference);
 
-    return Response.json({ success: true, order: inserted });
+    // 🔥 3. DYNAMIC REDIRECT RESPONSE PACKET OVERRIDE
+    // Ab ye dynamic metrics router components ko automatically feed karega!
+    return Response.json({ 
+      success: true, 
+      order: inserted,
+      redirectUrl: `/checkout/success?amount=${total}&course=${encodeURIComponent(primeProductTitle)}&ref=${reference}`
+    });
+
   } catch (error) {
     console.error("Checkout crash:", error);
     return Response.json({ error: "Checkout payment failed" }, { status: 500 });

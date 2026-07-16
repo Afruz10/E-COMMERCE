@@ -1,12 +1,13 @@
 import { db } from "@/db";
-import { orders } from "@/db/schema";
+import { orders, coupons, products } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
-// 🔐 SECURE GMAIL SYSTEM VAULT (Dynamic REST Fetch API)
 const DYNAMIC_RESEND_KEY = process.env.RESEND_API_KEY;
 
-async function triggerDirectGmailReceipt(studentEmail, studentName, amount, referenceId) {
+// 🔐 SECURE GMAIL SYSTEM VAULT
+async function triggerDirectGmailReceipt(studentEmail, studentName, amount, discount, subtotal, referenceId) {
   if (!DYNAMIC_RESEND_KEY) {
     console.error("❌ SYSTEM ALERT: process.env.RESEND_API_KEY environment locker is empty!");
     return;
@@ -33,9 +34,13 @@ async function triggerDirectGmailReceipt(studentEmail, studentName, amount, refe
             </p>
             <div style="background-color: rgba(244, 244, 245, 0.05); padding: 20px; border-radius: 12px; margin: 25px 0;">
               <p style="margin: 0; font-size: 14px; color: #71717a;">🆔 Reference ID:</p>
-              <p style="margin: 5px 0 15px 0; font-size: 16px; font-weight: bold; color: #ffffff;">${referenceId}</p>
+              <p style="margin: 5px 0 10px 0; font-size: 16px; font-weight: bold; color: #ffffff;">${referenceId}</p>
               
-              <p style="margin: 0; font-size: 14px; color: #71717a;">💵 Transaction Asset Metric:</p>
+              <p style="margin: 0; font-size: 14px; color: #71717a;">💰 Pricing Matrix:</p>
+              <p style="margin: 5px 0 5px 0; font-size: 14px; color: #a1a1aa;">Subtotal: ₹${subtotal}.00</p>
+              <p style="margin: 0 0 10px 0; font-size: 14px; color: #f43f5e;">Discount Applied: ₹${discount}.00</p>
+              
+              <p style="margin: 0; font-size: 14px; color: #71717a;">💵 Net Paid Amount:</p>
               <p style="margin: 5px 0 0 0; font-size: 18px; font-weight: bold; color: #39ff14;">₹${amount}.00 Paid</p>
             </div>
             <p style="font-size: 15px; color: #a1a1aa;">
@@ -80,45 +85,111 @@ export async function POST(req) {
   try {
     const body = await req.json();
     
-    // 🛠️ Dynamic fallbacks configuration
     const email = body.email || "guest@customer.com";
     const name = body.name || "Anonymous Customer";
-    const items = body.items || [{ title: "AI Course", qty: 1 }];
-    const total = body.total || "29"; 
+    const items = body.items || [];
+    const promoCode = body.promoCode ? body.promoCode.trim().toUpperCase() : null;
     const reference = body.reference || `REF-${Date.now()}`;
 
-    // Extracting dynamic values for URL redirect pipelines
+    if (items.length === 0) {
+      return Response.json({ error: "Your shopping cart is empty" }, { status: 400 });
+    }
+
+    // 1. Calculate base subtotal dynamically from items array to prevent tamper attacks
+    let calculatedSubtotal = 0;
+    items.forEach((item) => {
+      calculatedSubtotal += Number(item.price) * Number(item.qty);
+    });
+
+    let discountAmount = 0;
+    let promoDetailsMessage = "None";
+
+    // 2. Validate Coupon directly from Database if supplied
+    if (promoCode) {
+      const dbCoupons = await db
+        .select()
+        .from(coupons)
+        .where(and(eq(coupons.code, promoCode), eq(coupons.isActive, true)));
+
+      const activeCoupon = dbCoupons[0];
+
+      if (!activeCoupon) {
+        return Response.json({ error: "Invalid or inactive coupon code." }, { status: 400 });
+      }
+
+      // Check if the coupon is course-restricted
+      if (activeCoupon.targetProductId !== null) {
+        // Find if target course is present in cart items
+        // Since schema products has slugs, let's pull product details matching coupon ID
+        const targetProducts = await db
+          .select()
+          .from(products)
+          .where(eq(products.id, activeCoupon.targetProductId));
+
+        const restrictedProduct = targetProducts[0];
+
+        if (!restrictedProduct) {
+          return Response.json({ error: "Linked product for this coupon does not exist." }, { status: 400 });
+        }
+
+        const matchesInCart = items.filter(item => item.slug === restrictedProduct.slug);
+
+        if (matchesInCart.length === 0) {
+          return Response.json({ 
+            error: `This coupon is only valid for the course: "${restrictedProduct.title}".` 
+          }, { status: 400 });
+        }
+
+        // Apply discount ONLY on the target product
+        matchesInCart.forEach((matchedItem) => {
+          const itemTotal = Number(matchedItem.price) * Number(matchedItem.qty);
+          discountAmount += (itemTotal * activeCoupon.discountPercent) / 100;
+        });
+
+        promoDetailsMessage = `${activeCoupon.code} (${activeCoupon.discountPercent}% OFF on Specific Course)`;
+      } else {
+        // Apply discount globally across entire subtotal
+        discountAmount = (calculatedSubtotal * activeCoupon.discountPercent) / 100;
+        promoDetailsMessage = `${activeCoupon.code} (${activeCoupon.discountPercent}% OFF Global)`;
+      }
+    }
+
+    // 3. Final calculations
+    const finalTotal = Math.max(0, calculatedSubtotal - discountAmount);
     const primeProductTitle = items[0]?.title || "Premium Course";
 
-    // Database me order entry write sequence
+    // Save order metrics database entry
     const [inserted] = await db.insert(orders).values({
       reference,
       email,
       name,
       items: typeof items === 'string' ? JSON.parse(items) : items,
-      subtotal: String(total),
-      total: String(total),
+      subtotal: String(calculatedSubtotal),
+      discount: String(discountAmount),
+      total: String(finalTotal),
       status: "paid",
     }).returning();
 
-    // 📬 1. TELEGRAM BOT NOTIFICATION TRIGGER
+    // 📬 4. TELEGRAM BOT NOTIFICATION TRIGGER WITH COUPON DATA
     const orderMessage = `🎉 *Afruz Bhai! Naya Order Aaya Hai!* 💰\n\n` +
       `👤 *Name:* ${name}\n` +
       `📧 *Email:* ${email}\n` +
-      `💵 *Amount Paid:* ₹${total}\n` +
+      `🏷️ *Promo Code:* \`${promoDetailsMessage}\`\n` +
+      `💵 *Subtotal:* ₹${calculatedSubtotal}\n` +
+      `❌ *Discount:* -₹${discountAmount.toFixed(2)}\n` +
+      `💸 *Amount Paid:* ₹${finalTotal.toFixed(2)}\n` +
       `🆔 *Ref ID:* \`${reference}\``;
 
     await sendOrderNotification(orderMessage);
 
-    // 🚀 2. GMAIL CLIENT INVOICE INJECTION
-    await triggerDirectGmailReceipt(email, name, String(total), reference);
+    // 🚀 5. GMAIL CLIENT INVOICE INJECTION
+    await triggerDirectGmailReceipt(email, name, String(finalTotal), String(discountAmount), String(calculatedSubtotal), reference);
 
-    // 🔥 3. DYNAMIC REDIRECT RESPONSE PACKET OVERRIDE
-    // Ab ye dynamic metrics router components ko automatically feed karega!
+    // 🔥 6. DYNAMIC REDIRECT RESPONSE PACKET OVERRIDE
     return Response.json({ 
       success: true, 
       order: inserted,
-      redirectUrl: `/checkout/success?amount=${total}&course=${encodeURIComponent(primeProductTitle)}&ref=${reference}`
+      redirectUrl: `/checkout/success?amount=${finalTotal}&course=${encodeURIComponent(primeProductTitle)}&ref=${reference}`
     });
 
   } catch (error) {

@@ -9,6 +9,7 @@ import {
   numeric,
 } from "drizzle-orm/pg-core";
 
+// 📂 Categories Infrastructure Table
 export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
   slug: text("slug").notNull().unique(),
@@ -19,6 +20,7 @@ export const categories = pgTable("categories", {
   glyph: text("glyph").notNull(),
 });
 
+// 📂 Products / Courses Infrastructure Table
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   slug: text("slug").notNull().unique(),
@@ -48,6 +50,18 @@ export const products = pgTable("products", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// 📂 Dynamic Coupons Architecture Table (Add kiya gaya coupon validation control ke liye)
+export const coupons = pgTable("coupons", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  discountPercent: integer("discount_percent").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  // 🎯 Link to a specific product/course. If NULL, it applies globally to all courses.
+  targetProductId: integer("target_product_id").references(() => products.id, { onDelete: 'cascade' }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// 📂 Reviews Table Matrix
 export const reviews = pgTable("reviews", {
   id: serial("id").primaryKey(),
   productSlug: text("product_slug").notNull(),
@@ -59,6 +73,7 @@ export const reviews = pgTable("reviews", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// 📂 Orders Operational Log Table
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   reference: text("reference").notNull().unique(),
@@ -74,7 +89,9 @@ export const orders = pgTable("orders", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Data Export Types Definition
 export type Category = typeof categories.$inferSelect;
 export type Product = typeof products.$inferSelect;
+export type Coupon = typeof coupons.$inferSelect; // Type exported for dynamic checking
 export type Review = typeof reviews.$inferSelect;
 export type Order = typeof orders.$inferSelect;

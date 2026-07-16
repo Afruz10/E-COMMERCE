@@ -9,12 +9,6 @@ export default function CheckoutPage() {
   const {
     items,
     subtotal,
-    discount,
-    total,
-    promoApplied,
-    promoCode,
-    applyPromo,
-    removePromo,
     clear,
     hydrated,
   } = useCart();
@@ -27,17 +21,83 @@ export default function CheckoutPage() {
     cvc: "",
     country: "United States",
   });
+  
+  // 🏷️ INTELLIGENT PROMO & TRANSACTION STATE LABELS
   const [promoInput, setPromoInput] = useState("");
   const [promoMsg, setPromoMsg] = useState("");
+  const [isPromoValid, setIsPromoValid] = useState(false);
+  const [appliedPromoCode, setAppliedPromoCode] = useState("");
+  const [discountPercent, setDiscountPercent] = useState(0);
+  
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const handlePromo = () => {
-    if (applyPromo(promoInput)) {
-      setPromoMsg("Promo applied — 15% off!");
-    } else {
-      setPromoMsg("Invalid code. Try AICLAUDE.");
+  // 1. DYNAMIC CALCULATIONS TO FORCE VALID MULTI-COURSE DISCOUNTS
+  let calculatedDiscount = 0;
+  if (isPromoValid && discountPercent > 0) {
+    calculatedDiscount = (subtotal * discountPercent) / 100;
+  }
+  const currentTotal = Math.max(0, subtotal - calculatedDiscount);
+
+  // ➕ WEB ACTION: FETCH VALIDATION & APPLY COUPON
+  const handlePromoApply = async () => {
+    setError("");
+    setPromoMsg("");
+    if (!promoInput.trim()) return;
+
+    try {
+      // Backend api endpoint to verify code directly against target course restriction matrix
+      const res = await fetch("/api/admin/coupons");
+      if (!res.ok) throw new Error();
+      const allCoupons = await res.json();
+      
+      const matched = allCoupons.find(
+        (c: any) => c.code === promoInput.trim().toUpperCase() && c.isActive
+      );
+
+      if (!matched) {
+        setPromoMsg("Invalid code or promo has expired.");
+        setIsPromoValid(false);
+        return;
+      }
+
+      // If specific course coupon target is present, check course validation logic
+      if (matched.targetProductId !== null) {
+        const resProducts = await fetch("/api/products");
+        const allProducts = await resProducts.json();
+        const targetedProduct = allProducts.find((p: any) => p.id === matched.targetProductId);
+
+        if (!targetedProduct) {
+          setPromoMsg("Linked course data missing.");
+          return;
+        }
+
+        const isCourseInCart = items.some((item) => item.slug === targetedProduct.slug);
+
+        if (!isCourseInCart) {
+          setPromoMsg(`This code is only applicable for: "${targetedProduct.title}"`);
+          setIsPromoValid(false);
+          return;
+        }
+      }
+
+      // Success metrics matching parameters loaded
+      setIsPromoValid(true);
+      setAppliedPromoCode(matched.code);
+      setDiscountPercent(matched.discountPercent);
+      setPromoMsg(`Promo Applied Successfully — ${matched.discountPercent}% OFF!`);
+    } catch (err) {
+      setPromoMsg("Failed to connect validation systems.");
     }
+  };
+
+  // ❌ WEB ACTION: REMOVE ACTIVE COUPON ENTITY
+  const handlePromoRemove = () => {
+    setIsPromoValid(false);
+    setAppliedPromoCode("");
+    setDiscountPercent(0);
+    setPromoInput("");
+    setPromoMsg("Promo coupon removed safely.");
   };
 
   const placeOrder = async (e: React.FormEvent) => {
@@ -65,23 +125,20 @@ export default function CheckoutPage() {
             price: i.price,
             qty: i.qty,
           })),
-          total: total, // Passing exact calculated values to backend logic
-          promoCode: promoApplied ? promoCode : "",
+          total: currentTotal, 
+          promoCode: isPromoValid ? appliedPromoCode : "",
         }),
       });
       
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed");
       
-      // 🛒 Wipe current client state data tokens safely
       clear();
 
-      // 🔥 REDIRECT INJECTION HUB: Redirecting direct to our premium new page configuration!
       if (data.redirectUrl) {
         window.location.href = data.redirectUrl;
       } else {
-        // Fallback standard redirection path if backend router parameters drop out
-        window.location.href = `/checkout/success?amount=${total}&course=${encodeURIComponent(items[0]?.title || "Course")}&ref=${data.order?.reference || "REF-STORE"}`;
+        window.location.href = `/checkout/success?amount=${currentTotal}&course=${encodeURIComponent(items[0]?.title || "Course")}&ref=${data.order?.reference || "REF-STORE"}`;
       }
       
     } catch (err) {
@@ -115,9 +172,7 @@ export default function CheckoutPage() {
 
       <div className="mt-10 grid gap-8 lg:grid-cols-[1.4fr_1fr]">
         
-        {/* Input Interactive Forms Blocks */}
         <form onSubmit={placeOrder} className="flex flex-col gap-6">
-          
           <Section step={1} title="Contact details">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Full name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} placeholder="Ada Lovelace" />
@@ -168,11 +223,10 @@ export default function CheckoutPage() {
             disabled={submitting}
             className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-pink-600 px-6 py-4 text-xs font-bold uppercase tracking-widest text-white shadow-lg shadow-violet-500/10 hover:opacity-95 transition-opacity disabled:opacity-50"
           >
-            {submitting ? "Processing Flow Node…" : `Pay ${formatPrice(total)}`}
+            {submitting ? "Processing Flow Node…" : `Pay ${formatPrice(currentTotal)}`}
           </button>
         </form>
 
-        {/* Sidebar Summary Dynamic Glass Panels Grid */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-[2rem] border border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent p-6 backdrop-blur-xl shadow-2xl">
             <h2 className="font-display text-lg font-bold text-white uppercase tracking-wider">Order summary</h2>
@@ -191,12 +245,12 @@ export default function CheckoutPage() {
               ))}
             </ul>
 
-            {/* Promo Inputs Fields Layout */}
+            {/* 🏷️ DYNAMIC APP/REMOVE PROMO GRID SYSTEM INTERFACE */}
             <div className="mt-6 border-t border-white/5 pt-4">
-              {promoApplied ? (
+              {isPromoValid ? (
                 <div className="flex items-center justify-between rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 text-xs">
-                  <span className="font-bold text-emerald-400 uppercase tracking-wide">{promoCode} applied</span>
-                  <button onClick={removePromo} className="text-xs font-semibold text-slate-500 hover:text-red-400 transition-colors">Remove</button>
+                  <span className="font-bold text-emerald-400 uppercase tracking-wide">{appliedPromoCode} applied</span>
+                  <button type="button" onClick={handlePromoRemove} className="text-xs font-semibold text-slate-500 hover:text-red-400 transition-colors">Remove</button>
                 </div>
               ) : (
                 <div className="flex gap-2">
@@ -206,24 +260,27 @@ export default function CheckoutPage() {
                     placeholder="Promo code"
                     className="min-w-0 flex-1 rounded-xl border border-white/10 bg-zinc-950/60 px-4 py-2 text-xs text-white placeholder-slate-600 focus:border-violet-500 focus:outline-none"
                   />
-                  <button onClick={handlePromo} className="rounded-xl bg-white px-4 py-2 text-xs font-bold text-black hover:bg-slate-200 transition-colors">
+                  <button type="button" onClick={handlePromoApply} className="rounded-xl bg-white px-4 py-2 text-xs font-bold text-black hover:bg-slate-200 transition-colors">
                     Apply
                   </button>
                 </div>
               )}
-              {promoMsg && <p className="mt-2 text-[11px] text-slate-400 font-medium">{promoMsg}</p>}
+              {promoMsg && (
+                <p className={`mt-2 text-[11px] font-medium ${isPromoValid ? "text-emerald-400" : "text-rose-400"}`}>
+                  {promoMsg}
+                </p>
+              )}
             </div>
 
-            {/* Pricing Summary Blocks Array */}
             <div className="mt-6 flex flex-col gap-2 border-t border-white/5 pt-4 text-xs font-mono">
               <div className="flex justify-between text-slate-400">
                 <span>SUBTOTAL</span>
                 <span>{formatPrice(subtotal)}</span>
               </div>
-              {promoApplied && (
+              {isPromoValid && (
                 <div className="flex justify-between text-emerald-400 font-bold">
-                  <span>DISCOUNT (15%)</span>
-                  <span>−{formatPrice(discount)}</span>
+                  <span>DISCOUNT ({discountPercent}%)</span>
+                  <span>−{formatPrice(calculatedDiscount)}</span>
                 </div>
               )}
               <div className="flex justify-between text-slate-400">
@@ -232,7 +289,7 @@ export default function CheckoutPage() {
               </div>
               <div className="mt-2 flex justify-between border-t border-white/5 pt-3 font-display text-xl font-extrabold text-white">
                 <span className="font-sans text-sm font-bold tracking-wider text-slate-400 uppercase">TOTAL DUE</span>
-                <span className="text-2xl tracking-tight font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400">{formatPrice(total)}</span>
+                <span className="text-2xl tracking-tight font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400">{formatPrice(currentTotal)}</span>
               </div>
             </div>
           </div>

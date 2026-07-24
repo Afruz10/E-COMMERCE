@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 🎯 Typescript aur ESLint errors build ko fail nahi karenge
+  // 🎯 Build time par TypeScript aur ESLint errors ignore karne ke liye
   typescript: {
     ignoreBuildErrors: true,
   },

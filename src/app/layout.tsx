@@ -1,15 +1,12 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
-import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
-import "./globals.css";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { CartProvider } from "@/components/cart-context";
-import Header from "@/components/header"; // FIXED: Removed curly braces for default import
-import { CartDrawer } from "@/components/cart-drawer";
-import { Footer } from "@/components/footer";
+import "./globals.css";
 
-const fraunces = Fraunces({
+// 🎨 Fonts Setup
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-fraunces",
+  variable: "--font-inter",
   display: "swap",
 });
 
@@ -19,22 +16,68 @@ const jakarta = Plus_Jakarta_Sans({
   display: "swap",
 });
 
+// 🌐 STEP 3: GOOGLE METADATA & VERIFICATION ENGINE
 export const metadata: Metadata = {
-  title: "AfruzStore — Master AI. Spend Less. Build More.",
+  title: "AfruzStore | Premium AI Courses & Digital Assets",
   description:
-    "Premium courses that teach you to use Claude with fewer tokens, build AI for good, and turn AI skills into real income.",
+    "Master high-value tech skills, AI prompts, and token architectures directly on AfruzStore.",
+  keywords: [
+    "AfruzStore",
+    "Afruz Store",
+    "AI Prompt Engineering",
+    "Token Mastery",
+    "Tech Courses",
+  ],
+  authors: [{ name: "Afruz" }],
+  creator: "Afruz",
+  publisher: "AfruzStore",
+  
+  // 🎯 GOOGLE SEARCH CONSOLE VERIFICATION TAG
+  verification: {
+    google: "RuLzBOP5GBUIKXfBSvCv0v1CAsFFtKGH6x1Tk1RP2I8", // 👈 Search console se mila 'content' code yahan paste kar do
+  },
+
+  // 📱 Social Media OpenGraph Cards
+  openGraph: {
+    title: "AfruzStore | Premium AI Courses & Digital Assets",
+    description:
+      "Master high-value tech skills, AI prompts, and token architectures directly on AfruzStore.",
+    url: "https://afruzstore.vercel.app",
+    siteName: "AfruzStore",
+    type: "website",
+    locale: "en_US",
+  },
+  
+  // 🤖 Robots Configuration
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    // 🌐 FIXED: Added bg-[#030303] directly to HTML and Body tags to wipe out white spaces
-    <html lang="en" className={`${fraunces.variable} ${jakarta.variable} bg-[#030303]`}>
-      <body className="min-h-screen antialiased bg-[#030303] text-slate-100">
+    <html lang="en" className={`${inter.variable} ${jakarta.variable}`}>
+      <body className="min-h-screen bg-[#030303] text-slate-100 antialiased selection:bg-violet-500/30 selection:text-white">
         <CartProvider>
-          <Header />
-          <CartDrawer />
-          <main className="bg-[#030303]">{children}</main>
-          <Footer />
+          <div className="relative flex min-h-screen flex-col">
+            {/* Background Ambient Glow Gradient */}
+            <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-violet-900/10 via-transparent to-transparent blur-3xl" />
+            
+            {/* Main Application Container */}
+            <main className="relative z-10 flex-1">{children}</main>
+          </div>
         </CartProvider>
       </body>
     </html>

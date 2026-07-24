@@ -30,7 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${jakarta.variable}`}>
       <head>
-        {/* 🎯 DIRECT HARDCODED GOOGLE VERIFICATION META TAG */}
+        {/* 🎯 GOOGLE SITE VERIFICATION META TAG DIRECTLY IN HEAD */}
         <meta name="google-site-verification" content="RuLzBOP5GBUIKXfBSvCv0v1CAsFFtKGH6x1Tk1RP2I8" />
       </head>
       <body className="min-h-screen bg-[#030303] text-slate-100 antialiased selection:bg-violet-500/30 selection:text-white">

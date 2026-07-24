@@ -6,8 +6,15 @@ export const dynamic = "force-dynamic";
 
 const DYNAMIC_RESEND_KEY = process.env.RESEND_API_KEY;
 
-// 🔐 SECURE GMAIL SYSTEM VAULT
-async function triggerDirectGmailReceipt(studentEmail, studentName, amount, discount, subtotal, referenceId) {
+// 🔐 SECURE GMAIL SYSTEM VAULT (TYPESCRIPT TYPES FIXED BELOW)
+async function triggerDirectGmailReceipt(
+  studentEmail: any,
+  studentName: any,
+  amount: any,
+  discount: any,
+  subtotal: any,
+  referenceId: any
+) {
   if (!DYNAMIC_RESEND_KEY) {
     console.error("❌ SYSTEM ALERT: process.env.RESEND_API_KEY environment locker is empty!");
     return;
@@ -61,13 +68,13 @@ async function triggerDirectGmailReceipt(studentEmail, studentName, amount, disc
     } else {
       console.error("❌ REST Pipeline response failure error dump:", data);
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error("Critical email system failure loop exceptions:", err.message);
   }
 }
 
 // 🤖 Telegram Order Notification Bot
-async function sendOrderNotification(message) {
+async function sendOrderNotification(message: string) {
   const botToken = "8911554064:AAH4QUzD2aWDn3dHBjeaf3pLCAJnND-Csnw";
   const chatId = "5593004632";
   try {
@@ -81,7 +88,7 @@ async function sendOrderNotification(message) {
   }
 }
 
-export async function POST(req) {
+export async function POST(req: Request) {
   try {
     const body = await req.json();
     
@@ -97,7 +104,7 @@ export async function POST(req) {
 
     // 1. Calculate base subtotal dynamically from items array to prevent tamper attacks
     let calculatedSubtotal = 0;
-    items.forEach((item) => {
+    items.forEach((item: any) => {
       calculatedSubtotal += Number(item.price) * Number(item.qty);
     });
 
@@ -119,8 +126,6 @@ export async function POST(req) {
 
       // Check if the coupon is course-restricted
       if (activeCoupon.targetProductId !== null) {
-        // Find if target course is present in cart items
-        // Since schema products has slugs, let's pull product details matching coupon ID
         const targetProducts = await db
           .select()
           .from(products)
@@ -132,7 +137,7 @@ export async function POST(req) {
           return Response.json({ error: "Linked product for this coupon does not exist." }, { status: 400 });
         }
 
-        const matchesInCart = items.filter(item => item.slug === restrictedProduct.slug);
+        const matchesInCart = items.filter((item: any) => item.slug === restrictedProduct.slug);
 
         if (matchesInCart.length === 0) {
           return Response.json({ 
@@ -141,7 +146,7 @@ export async function POST(req) {
         }
 
         // Apply discount ONLY on the target product
-        matchesInCart.forEach((matchedItem) => {
+        matchesInCart.forEach((matchedItem: any) => {
           const itemTotal = Number(matchedItem.price) * Number(matchedItem.qty);
           discountAmount += (itemTotal * activeCoupon.discountPercent) / 100;
         });

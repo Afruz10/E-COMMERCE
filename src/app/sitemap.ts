@@ -1,19 +1,19 @@
-import { MetadataRoute } from "next";
+import { MetadataRoute } from 'next';
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = "https://afruzstore.vercel.app"; // Apna domain yahan change kar dena agar custom ho
+export default function sitemap(): MetadataRoute.Sitemap {
+  const baseUrl = 'https://afruzstore.vercel.app';
 
   return [
     {
       url: baseUrl,
       lastModified: new Date(),
-      changeFrequency: "daily",
+      changeFrequency: 'daily',
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/products`,
+      url: `${baseUrl}/checkout`,
       lastModified: new Date(),
-      changeFrequency: "weekly",
+      changeFrequency: 'weekly',
       priority: 0.8,
     },
   ];
